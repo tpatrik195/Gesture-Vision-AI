@@ -25,7 +25,7 @@ const App = () => {
           menuItems={menuItems}
           currentPath={window.location.pathname}
         />
-        <div style={{ padding: '20px' }}>
+        <div>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/presentation" element={<PresentationPage />} />

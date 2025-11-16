@@ -62,6 +62,9 @@
         "func4Description": "Tu decizi ce gest execută fiecare funcție - totul este configurabil.",
         "func5Title": "Mod ecran complet & Debug",
         "func5Description": "Prezintă în modul fullscreen sau dezvoltă cu feedback detaliat al recunoașterii gesturilor.",
+        "tryItTitle": "Încearcă",
+        "tryItDescription": "Vrei să încerci? Experimentează cât de ușor este controlul prin gesturi!",
+        "tryItButton": "Încearcă acum",
         "question": "De ce merită folosit?",
         "benefits": "Cursurile online devin nu doar <strong>mai vizuale</strong>, ci și <strong>mai captivante</strong> - sprijinind <strong>profesorii</strong> în activitatea lor și sporind <strong>atenția și implicarea elevilor</strong>."
     }

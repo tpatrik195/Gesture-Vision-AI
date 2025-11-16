@@ -62,6 +62,9 @@
         "func4Description": "You decide which gesture triggers which function - fully configurable.",
         "func5Title": "Fullscreen & Debug Mode",
         "func5Description": "Present in fullscreen or debug with detailed gesture recognition feedback.",
+        "tryItTitle": "Try It",
+        "tryItDescription": "Would you like to try? Experience how easy gesture control is!",
+        "tryItButton": "Try it now",
         "question": "Why should you use it?",
         "benefits": "Online classes become not only <strong>more visually engaging</strong> but also <strong>more immersive</strong> - supporting <strong>teachers</strong> in their work and increasing <strong>student</strong> attention and participation."
     }

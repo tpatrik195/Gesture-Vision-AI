@@ -62,6 +62,9 @@
         "func4Description": "Te döntöd el, milyen gesztus mit váltson ki - rugalmasan konfigurálható.",
         "func5Title": "Teljes képernyő & Debug mód",
         "func5Description": "Prezentálj fullscreenben, vagy fejlessz részletes kézfelismerési visszajelzésekkel.",
+        "tryItTitle": "Próbáld ki",
+        "tryItDescription": "Kipróbálnád? Tapasztald meg, milyen egyszerű a gesztusvezérlés!",
+        "tryItButton": "Próbáld ki most",
         "question": "Miért érdemes használni?",
         "benefits": "Az online órák így nemcsak <strong>látványosabbak</strong>, de sokkal <strong>élményszerűbbek</strong> is lesznek - segítve ezzel a <strong>tanárok</strong> munkáját, és növelve a <strong>diákok</strong> figyelmét és aktivitását."
     }
