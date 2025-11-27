@@ -8,6 +8,9 @@ import { Box, Container, Grid, Typography, Button, Card, CardContent } from '@mu
 import { useTranslation } from 'react-i18next';
 import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import slide1 from '../pictures/slider1.webp';
+import slide2 from '../pictures/slider2.jpeg';
+import slide3 from '../pictures/slider3.jpeg';
 
 const HomePage = () => {
   const { t } = useTranslation(); 
@@ -57,29 +60,29 @@ const HomePage = () => {
                 modules={[Autoplay, Navigation, Pagination]}
                 spaceBetween={20}
                 slidesPerView={1}
-                navigation
-                pagination={{ clickable: true }}
+                // navigation
+                // pagination={{ clickable: true }}
                 autoplay={{ delay: 3000, disableOnInteraction: false }}
                 loop
                 style={{ position: 'relative', zIndex: 1, borderRadius: '20px', height: '400px' }}
               >
                 <SwiperSlide>
                   <img
-                    src="https://blogassets.leverageedu.com/blog/wp-content/uploads/2020/03/24185535/Online-Learning.jpg"
+                    src={slide1}
                     alt="Slide 1"
                     style={{ width: '100%', objectFit: 'cover', height: '400px' }}
                   />
                 </SwiperSlide>
                 <SwiperSlide>
                   <img
-                    src="https://www.keg.com/hubfs/shutterstock_404189197%20%281%29-1.jpg"
+                    src={slide2}
                     alt="Slide 2"
                     style={{ width: '100%', objectFit: 'cover', height: '400px' }}
                   />
                 </SwiperSlide>
                 <SwiperSlide>
                   <img
-                    src="https://img-cdn.inc.com/image/upload/f_webp,q_auto,c_fit/images/panoramic/GettyImages-1217591630_449017_txf4as.jpg"
+                    src={slide3}
                     alt="Slide 3"
                     style={{ width: '100%', objectFit: 'cover', height: '400px' }}
                   />

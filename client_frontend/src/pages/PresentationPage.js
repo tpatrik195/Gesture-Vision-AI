@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+ import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import { SelfieSegmentation } from "@mediapipe/selfie_segmentation";
 import * as cam from "@mediapipe/camera_utils";
@@ -6,13 +6,17 @@ import '../App.css';
 import defaultImg from '../background.jpg'
 import DisplayLottie from "../DisplayLottie";
 import loader from '../85646-loading-dots-blue.json'
-import * as pdfjsLib from "pdfjs-dist";
+// import * as pdfjsLib from "pdfjs-dist";
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
-import { GlobalWorkerOptions } from 'pdfjs-dist';
+// import { GlobalWorkerOptions } from 'pdfjs-dist';
 import { io } from "socket.io-client";
 import { useTranslation } from 'react-i18next';
 import CursorFollower from "../components/CursorFollower";
+
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
+GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.js";
 
 const SERVER_URL = "http://127.0.0.1:8000";
 const WEBHOOK_URL = "http://127.0.0.1:9000/webhook";
@@ -212,7 +216,7 @@ const PresentationPage = () => {
     }, [pdfPageNum, pptSlideNum, fileType]);
 
     const imageHandler = async (e) => {
-        GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+        // GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.js`;        
 
         const file = e.target.files[0];
         const fileType = file.type;
