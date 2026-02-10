@@ -47,6 +47,8 @@ const PresentationPage = () => {
     let frameInterval = useRef(null);
     const [markerPosition, setMarkerPosition] = useState(null);
     const showPersonRef = useRef(showPerson);
+    const cameraRef = useRef(null);
+    const segmentationRef = useRef(null);
 
     const { t } = useTranslation();
 
@@ -150,6 +152,7 @@ const PresentationPage = () => {
         });
 
         selfieSegmentation.onResults(onResults);
+        segmentationRef.current = selfieSegmentation;
 
         if (
             typeof webcamRef.current !== "undefined" &&
@@ -163,8 +166,24 @@ const PresentationPage = () => {
                 height: 720
             });
 
+            cameraRef.current = camera;
             camera.start();
         }
+
+        return () => {
+            try {
+                cameraRef.current?.stop();
+            } catch (e) {
+                // ignore cleanup errors
+            }
+            try {
+                segmentationRef.current?.close();
+            } catch (e) {
+                // ignore cleanup errors
+            }
+            cameraRef.current = null;
+            segmentationRef.current = null;
+        };
     }, []);
     // }, [showPerson]);  
 
@@ -397,6 +416,8 @@ const PresentationPage = () => {
 
     useEffect(() => {
         const storedSettings = JSON.parse(sessionStorage.getItem("gestureSettings")) || {};
+        const showLabel = t('presentationPage.showPerson');
+        const hideLabel = t('presentationPage.hidePerson');
 
         if (gesture) {
             const mappedGesture = storedSettings[gesture] || gesture;
@@ -425,11 +446,25 @@ const PresentationPage = () => {
                 setPersonScale((prevScale) => Math.min(prevScale + 0.1, 2));
             } else if (mappedGesture === "Zoom Out") {
                 setPersonScale((prevScale) => Math.max(prevScale - 0.1, 0.5));
+            } else if (
+                mappedGesture === showLabel ||
+                mappedGesture.toLowerCase() === showLabel.toLowerCase() ||
+                mappedGesture === "Show person" ||
+                mappedGesture === "Show Person"
+            ) {
+                setShowPerson(true);
+            } else if (
+                mappedGesture === hideLabel ||
+                mappedGesture.toLowerCase() === hideLabel.toLowerCase() ||
+                mappedGesture === "Hide person" ||
+                mappedGesture === "Hide Person"
+            ) {
+                setShowPerson(false);
             } else if (mappedGesture === "Full screen" || mappedGesture === "Exit full screen") {
                 toggleFullScreen();
             }
         }
-    }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length]);
+    }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, t]);
 
     const toggleFullScreen = () => {
         if (!document.fullscreenElement) {
