@@ -46,6 +46,7 @@ const PresentationPage = () => {
     const [personScale, setPersonScale] = useState(1);
     let frameInterval = useRef(null);
     const [markerPosition, setMarkerPosition] = useState(null);
+    const showPersonRef = useRef(showPerson);
 
     const { t } = useTranslation();
 
@@ -66,14 +67,16 @@ const PresentationPage = () => {
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-        // if (showPerson) {
-        canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-        canvasCtx.globalCompositeOperation = 'destination-atop';
-        canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
-        // }
+        if (showPersonRef.current) {
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.globalCompositeOperation = 'destination-atop';
+            canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+        }
 
         canvasCtx.globalCompositeOperation = 'destination-over';
-        canvasCtx.drawImage(img, 0, 0, canvasElement.width, canvasElement.height);
+        if (img) {
+            canvasCtx.drawImage(img, 0, 0, canvasElement.width, canvasElement.height);
+        }
         canvasCtx.restore();
 
         // if (markerPosition) {
@@ -86,6 +89,10 @@ const PresentationPage = () => {
 
         setLoad(true);
     }
+    
+    useEffect(() => {
+        showPersonRef.current = showPerson;
+    }, [showPerson]);
 
     // const onResults = async (results) => {
     //     const img = document.getElementById('vbackground');
