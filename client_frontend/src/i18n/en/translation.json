@@ -17,6 +17,7 @@
     },
     "settingsPage": {
         "title": "Gesture Settings",
+        "subtitle": "Customize which gesture triggers which function",
         "option1": "Option 1",
         "option2": "Option 2",
         "option3": "Option 3",
@@ -31,7 +32,8 @@
         "laserPointer": "Laser pointer",
         "debugMode": "Debug mode",
         "gesture": "Gesture",
-        "function": "Function"
+        "function": "Function",
+        "saveButton": "Save settings"
     },
     "practiceCard": {
         "tryGesture": "Try this gesture"

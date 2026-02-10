@@ -17,6 +17,7 @@
     },
     "settingsPage": {
         "title": "Setări Gesturi",
+        "subtitle": "Configurează ce funcție declanșează fiecare gest",
         "option1": "Opțiunea 1",
         "option2": "Opțiunea 2",
         "option3": "Opțiunea 3",
@@ -31,7 +32,8 @@
         "laserPointer": "Pointer laser",
         "debugMode": "Mod de Debug",
         "gesture": "Gest",
-        "function": "Funcție"
+        "function": "Funcție",
+        "saveButton": "Salvează setările"
     },
     "practiceCard": {
         "tryGesture": "Încearcă acest gest"

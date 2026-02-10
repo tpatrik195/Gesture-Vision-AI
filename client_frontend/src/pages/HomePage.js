@@ -13,7 +13,7 @@ import slide2 from '../pictures/slider2.jpeg';
 import slide3 from '../pictures/slider3.jpeg';
 
 const HomePage = () => {
-  const { t } = useTranslation(); 
+  const { t } = useTranslation();
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ const HomePage = () => {
     },
     {
       icon: '🖥️',
-      title:t('homePage.tryItTitle'),
+      title: t('homePage.tryItTitle'),
       desc: t('homePage.tryItDescription'),
       tryIt: true,
     },
@@ -48,46 +48,50 @@ const HomePage = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #06200eff 5%, #0c0d31 30%, #003278ff 70%, #030044b8 100%)',
-        color: '#f0f0f0',
+        background: 'linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)',
+        color: '#4b2e2b',
         overflowX: 'hidden',
       }}
     >
       <Container sx={{ py: 12 }}>
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
-              <Swiper
-                modules={[Autoplay, Navigation, Pagination]}
-                spaceBetween={20}
-                slidesPerView={1}
-                // navigation
-                // pagination={{ clickable: true }}
-                autoplay={{ delay: 3000, disableOnInteraction: false }}
-                loop
-                style={{ position: 'relative', zIndex: 1, borderRadius: '20px', height: '400px' }}
-              >
-                <SwiperSlide>
-                  <img
-                    src={slide1}
-                    alt="Slide 1"
-                    style={{ width: '100%', objectFit: 'cover', height: '400px' }}
-                  />
-                </SwiperSlide>
-                <SwiperSlide>
-                  <img
-                    src={slide2}
-                    alt="Slide 2"
-                    style={{ width: '100%', objectFit: 'cover', height: '400px' }}
-                  />
-                </SwiperSlide>
-                <SwiperSlide>
-                  <img
-                    src={slide3}
-                    alt="Slide 3"
-                    style={{ width: '100%', objectFit: 'cover', height: '400px' }}
-                  />
-                </SwiperSlide>
-              </Swiper>
+            <Swiper
+              modules={[Autoplay, Navigation, Pagination]}
+              spaceBetween={20}
+              slidesPerView={1}
+              autoplay={{ delay: 3000, disableOnInteraction: false }}
+              loop
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                borderRadius: '20px',
+                height: '400px',
+                boxShadow: '0 10px 30px rgba(75,46,43,0.25)',
+              }}
+            >
+              <SwiperSlide>
+                <img
+                  src={slide1}
+                  alt="Slide 1"
+                  style={{ width: '100%', objectFit: 'cover', height: '400px' }}
+                />
+              </SwiperSlide>
+              <SwiperSlide>
+                <img
+                  src={slide2}
+                  alt="Slide 2"
+                  style={{ width: '100%', objectFit: 'cover', height: '400px' }}
+                />
+              </SwiperSlide>
+              <SwiperSlide>
+                <img
+                  src={slide3}
+                  alt="Slide 3"
+                  style={{ width: '100%', objectFit: 'cover', height: '400px' }}
+                />
+              </SwiperSlide>
+            </Swiper>
           </Grid>
 
           <Grid item xs={12} md={6}>
@@ -102,19 +106,17 @@ const HomePage = () => {
                 fontWeight="bold"
                 sx={{
                   mb: 2,
-                  background: 'linear-gradient(90deg, #aa00ff, #00ffbb)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  color: '#6b1f1a', // sötét vörös
                 }}
               >
                 Gesture Vision AI
               </Typography>
 
-              <Typography variant="h5" sx={{ mb: 2, color: '#f0f0f0' }}>
+              <Typography variant="h5" sx={{ mb: 2, color: '#5a3a2e' }}>
                 {t('homePage.subtitle')}
               </Typography>
 
-              <Typography variant="body1" sx={{ mb: 4, color: '#f0f0f0' }}>
+              <Typography variant="body1" sx={{ mb: 4, color: '#6a4a3c' }}>
                 {t('homePage.subsubtitle')}
               </Typography>
             </motion.div>
@@ -136,32 +138,43 @@ const HomePage = () => {
                   sx={{
                     p: 4,
                     borderRadius: '20px',
-                    background: 'rgba(255,255,255,0.05)',
-                    backdropFilter: 'blur(8px)',
-                    boxShadow: '0 0 20px 5px rgba(170, 0, 255, 0.25), 0 0 30px 10px rgba(0, 0, 0, 0.1)',
+                    background: '#ffffff',
+                    boxShadow: '0 8px 30px rgba(75,46,43,0.15)',
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    color: '#e0f7fa',
-                    position: 'relative',
-                    overflow: 'visible',
+                    color: '#4b2e2b',
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h5" sx={{ mb: 2, color: '#f0f0f0', fontWeight: 600 }}>
+                    <Typography
+                      variant="h5"
+                      sx={{ mb: 2, fontWeight: 600, color: '#6b1f1a' }}
+                    >
                       {f.icon} {f.title}
                     </Typography>
-                    <Typography variant="body1" sx={{ color: '#d0f0f5', mb: 2, fontSize: '1.05rem' }}>
+
+                    <Typography
+                      variant="body1"
+                      sx={{ mb: 2, color: '#5a3a2e', fontSize: '1.05rem' }}
+                    >
                       {f.desc}
                     </Typography>
+
                     {f.extra &&
                       f.extra.map((ex, i) => (
                         <Box key={i} sx={{ mt: 1 }}>
-                          <Typography variant="subtitle1" sx={{ mb: 0.5, color: '#f0f0f0', fontWeight: 600 }}>
+                          <Typography
+                            variant="subtitle1"
+                            sx={{ mb: 0.5, fontWeight: 600, color: '#6b1f1a' }}
+                          >
                             {ex.icon} {ex.title}
                           </Typography>
-                          <Typography variant="body2" sx={{ color: '#c0e8f5', fontSize: '1rem' }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: '#6a4a3c', fontSize: '1rem' }}
+                          >
                             {ex.desc}
                           </Typography>
                         </Box>
@@ -173,12 +186,16 @@ const HomePage = () => {
                       <Button
                         variant="contained"
                         sx={{
-                          background: 'linear-gradient(90deg, #aa00ff, #00ffbb)',
-                          color: 'white',
+                          background: '#6b1f1a',
+                          color: '#fff',
                           fontWeight: 'bold',
                           borderRadius: '12px',
-                          boxShadow: '0px 4px 20px rgba(170,0,255,0.5)',
-                          '&:hover': { boxShadow: '0px 6px 30px rgba(0,255,187,0.7)' },
+                          px: 4,
+                          boxShadow: '0 6px 20px rgba(107,31,26,0.4)',
+                          '&:hover': {
+                            background: '#5a1814',
+                            boxShadow: '0 8px 30px rgba(107,31,26,0.6)',
+                          },
                         }}
                         onClick={() => navigate('/presentation')}
                       >

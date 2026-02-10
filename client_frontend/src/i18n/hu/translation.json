@@ -17,6 +17,7 @@
     },
     "settingsPage": {
         "title": "Gesztusok Beállítása",
+        "subtitle": "Állítsd be, melyik gesztus milyen funkciót hajtson végre",
         "option1": "1. opció",
         "option2": "2. opció",
         "option3": "3. opció",
@@ -31,7 +32,8 @@
         "laserPointer": "Lézer mutató",
         "debugMode": "Debug mód",
         "gesture": "Gesztus",
-        "function": "Funkció"
+        "function": "Funkció",
+        "saveButton": "Beállítások mentése"
     },
     "practiceCard": {
         "tryGesture": "Gesztus kipróbálása"
