@@ -6,10 +6,8 @@ import '../App.css';
 import defaultImg from '../background.jpg'
 import DisplayLottie from "../DisplayLottie";
 import loader from '../85646-loading-dots-blue.json'
-// import * as pdfjsLib from "pdfjs-dist";
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
-// import { GlobalWorkerOptions } from 'pdfjs-dist';
 import { io } from "socket.io-client";
 import { useTranslation } from 'react-i18next';
 import CursorFollower from "../components/CursorFollower";
@@ -39,12 +37,10 @@ const PresentationPage = () => {
     const [pdfUrl, setPdfUrl] = useState("");
     const [fileType, setFileType] = useState("");
     const [gesture, setGesture] = useState("");
-    const [error, setError] = useState("");
     const [showPerson, setShowPerson] = useState(true);
     const [subscribed, setSubscribed] = useState(false);
     const [fullScreenMode, setFullScreenMode] = useState(false);
-    const [personScale, setPersonScale] = useState(1);
-    let frameInterval = useRef(null);
+    const frameInterval = useRef(null);
     const [markerPosition, setMarkerPosition] = useState(null);
     const showPersonRef = useRef(showPerson);
     const cameraRef = useRef(null);
@@ -81,64 +77,12 @@ const PresentationPage = () => {
         }
         canvasCtx.restore();
 
-        // if (markerPosition) {
-        //     canvasCtx.beginPath();
-        //     canvasCtx.arc(markerPosition.x, markerPosition.y, 100, 0, 2 * Math.PI);
-        //     canvasCtx.fillStyle = "red";
-        //     canvasCtx.fill();
-        //     canvasCtx.closePath();
-        // }
-
         setLoad(true);
     }
     
     useEffect(() => {
         showPersonRef.current = showPerson;
     }, [showPerson]);
-
-    // const onResults = async (results) => {
-    //     const img = document.getElementById('vbackground');
-    //     const videoWidth = webcamRef.current.video.videoWidth;
-    //     const videoHeight = webcamRef.current.video.videoHeight;
-
-    //     canvasRef.current.width = videoWidth;
-    //     canvasRef.current.height = videoHeight;
-
-    //     const canvasElement = canvasRef.current;
-    //     const canvasCtx = canvasElement.getContext("2d");
-
-    //     canvasCtx.save();
-    //     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-
-    //     // A személy skálázása
-    //     const scaleWidth = videoWidth * personScale;
-    //     const scaleHeight = videoHeight * personScale;
-
-    //     // Ha a showPerson true, akkor rajzoljuk ki a személyt és a háttér maszkot
-    //     // if (showPerson) {
-    //         console.log(personScale);
-
-    //         canvasCtx.drawImage(
-    //             results.image,
-    //             0, 0, videoWidth, videoHeight, // Eredeti kép
-    //             (videoWidth - scaleWidth) / 2, (videoHeight - scaleHeight) / 2, // A személy középre helyezése
-    //             scaleWidth, scaleHeight // Skálázott személy méret
-    //         );
-    //         canvasCtx.globalCompositeOperation = 'destination-atop';
-    //         canvasCtx.drawImage(
-    //             results.segmentationMask,
-    //             0, 0, videoWidth, videoHeight, // Eredeti maszk
-    //             (videoWidth - scaleWidth) / 2, (videoHeight - scaleHeight) / 2, // Maszk középre helyezése
-    //             scaleWidth, scaleHeight // Skálázott maszk méret
-    //         );
-    //     // }
-
-    //     // A háttérre rajzolás
-    //     canvasCtx.globalCompositeOperation = 'destination-over';
-    //     canvasCtx.drawImage(img, 0, 0, canvasElement.width, canvasElement.height);
-    //     canvasCtx.restore();
-    //     setLoad(true);
-    // }
 
     useEffect(() => {
         const selfieSegmentation = new SelfieSegmentation({
@@ -173,19 +117,14 @@ const PresentationPage = () => {
         return () => {
             try {
                 cameraRef.current?.stop();
-            } catch (e) {
-                // ignore cleanup errors
-            }
+            } catch (e) {}
             try {
                 segmentationRef.current?.close();
-            } catch (e) {
-                // ignore cleanup errors
-            }
+            } catch (e) {}
             cameraRef.current = null;
             segmentationRef.current = null;
         };
     }, []);
-    // }, [showPerson]);  
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -251,8 +190,6 @@ const PresentationPage = () => {
     }, [pdfPageNum, pptSlideNum, fileType]);
 
     const imageHandler = async (e) => {
-        // GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.js`;        
-
         const file = e.target.files[0];
         const fileType = file.type;
         setFileType(fileType);
@@ -303,14 +240,12 @@ const PresentationPage = () => {
                 throw new Error(`Subscription failed with status ${response.status}`);
             }
 
-            const responseBody = await response.json();
-            console.log("Webhook subscription response:", responseBody);
+            await response.json();
 
             setSubscribed(true);
             startFrameStreaming();
         } catch (error) {
             console.error("Subscription failed", error);
-            setError(error.message);
         }
     };
 
@@ -332,7 +267,6 @@ const PresentationPage = () => {
             stopFrameStreaming();
         } catch (error) {
             console.error("Unsubscription failed", error);
-            setError(error.message);
         }
     };
 
@@ -354,16 +288,13 @@ const PresentationPage = () => {
                         const formData = new FormData();
                         formData.append("frame", blob, "frame.jpg");
                         const frameId = ++frameCounter;
-                        const startTime = performance.now();
-                        // console.log(`Start Time [${frameId}]:`, startTime);
                         
 
                         try {
-                            const response = await fetch(`${SERVER_URL}/process_frame?frameId=${frameId}`, {
+                            await fetch(`${SERVER_URL}/process_frame?frameId=${frameId}`, {
                                 method: "POST",
                                 body: formData,
                             });
-
                         } catch (error) {
                             console.error("Error sending frame", error);
                         }
@@ -381,11 +312,7 @@ const PresentationPage = () => {
 
     useEffect(() => {
         socket.on("gesture_event", async (data) => {
-            console.log("Gesture received:", data);
             setGesture(data.gesture);
-            const endTime = performance.now();   // end
-            // console.log(`End Time [${frameCounter}]:`, endTime);
-            // console.log("------------------------------------");
 
             if (data.gesture.includes(",")) {
                 const [x, y] = data.gesture.split(',').map(Number);
@@ -397,22 +324,6 @@ const PresentationPage = () => {
             socket.off("gesture_event");
         };
     }, []);
-
-    console.log(markerPosition);
-
-    // useEffect(() => {
-    //     if (markerPosition) {
-    //         const canvasElement = canvasRef.current;
-    //         const ctx = canvasElement.getContext("2d");
-    
-    //         ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    
-    //         ctx.beginPath();
-    //         ctx.arc(markerPosition.x, markerPosition.y, 10, 0, Math.PI * 2);
-    //         ctx.fillStyle = "red";
-    //         ctx.fill();
-    //     }
-    // }, [markerPosition]);
 
     useEffect(() => {
         const storedSettings = JSON.parse(sessionStorage.getItem("gestureSettings")) || {};
@@ -442,10 +353,6 @@ const PresentationPage = () => {
                 ) {
                     setPptSlideNum((prev) => prev - 1);
                 }
-            } else if (mappedGesture === "Zoom In") {
-                setPersonScale((prevScale) => Math.min(prevScale + 0.1, 2));
-            } else if (mappedGesture === "Zoom Out") {
-                setPersonScale((prevScale) => Math.max(prevScale - 0.1, 0.5));
             } else if (
                 mappedGesture === showLabel ||
                 mappedGesture.toLowerCase() === showLabel.toLowerCase() ||
@@ -510,7 +417,6 @@ const PresentationPage = () => {
                                 display: "none",
                                 width: "100%",
                                 height: "100%",
-                                // transform: "scaleX(-1)"
                             }}
                         />
 
@@ -527,7 +433,6 @@ const PresentationPage = () => {
                             style={{
                                 width: "100%",
                                 height: "100%",
-                                // transform: "scaleX(-1)",
                             }}
                         ></canvas>
                     </div>

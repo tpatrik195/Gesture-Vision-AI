@@ -1,7 +1,7 @@
 # Edge-AI-Vision (Gesture Vision AI)
 
 run API:    cd Edge-AI-Vision
-            uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+            uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir app
 
 run client app:
     run webhook server: cd Edge-AI-Vision/client_frontend

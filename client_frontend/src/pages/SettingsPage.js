@@ -61,10 +61,6 @@ const SettingsPage = () => {
                 <Typography variant="h5" fontWeight="bold" textAlign="center" marginBottom={2}>
                     {t('settingsPage.title')}
                 </Typography>
-                {/* <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Typography>{t('settingsPage.gesture')}</Typography>
-                    <Typography>{t('settingsPage.function')}</Typography>
-                </div> */}
                 <Divider sx={{ marginBottom: 2 }} />
                 {Gestures.map((gesture) => (
                     <Box key={gesture.name} sx={{ marginBottom: 2 }}>
