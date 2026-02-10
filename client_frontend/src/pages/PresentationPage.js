@@ -16,7 +16,10 @@ import CursorFollower from "../components/CursorFollower";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
-GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.js";
+GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
+    import.meta.url
+).toString();
 
 const SERVER_URL = "http://127.0.0.1:8000";
 const WEBHOOK_URL = "http://127.0.0.1:9000/webhook";
@@ -180,6 +183,9 @@ const PresentationPage = () => {
     }, [pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length]);
 
     const onPdfPageChange = async (pageNum) => {
+        if (!pdfUrl) {
+            return;
+        }
         const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
         const page = await pdf.getPage(pageNum);
         const scale = 1.5;
