@@ -8,18 +8,31 @@ const PracticePage = () => {
     const { t } = useTranslation();
     const gestures = getGestures(t);
     return (
-        <Box style={{ 
-            display: 'flex',
-            flexWrap: 'wrap',
-            background: 'linear-gradient(135deg, #030044b8 5%, #0c0d31 30%, #003278ff 70%, #06200eff 100%)',
-            minHeight: '100vh',
-            overflowX: 'hidden'
-        }}
-        sx={{paddingTop: '60px'}}
+        <Box
+            style={{
+                background: 'linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)',
+                minHeight: '100vh',
+                overflowX: 'hidden',
+            }}
+            sx={{ paddingTop: '60px', px: { xs: 2, md: 6 } }}
         >
-            {gestures.map((gesture, index) => (
-                <PracticeCard key={index} id={gesture.id} name={gesture.name} image={gesture.image} t={t} />
-            ))}
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'repeat(2, minmax(0, 1fr))',
+                        md: 'repeat(3, minmax(0, 1fr))',
+                    },
+                    gap: 4,
+                    maxWidth: 1200,
+                    mx: 'auto',
+                }}
+            >
+                {gestures.map((gesture, index) => (
+                    <PracticeCard key={index} id={gesture.id} name={gesture.name} image={gesture.image} t={t} />
+                ))}
+            </Box>
         </Box>
     );
 };

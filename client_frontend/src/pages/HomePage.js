@@ -49,7 +49,7 @@ const HomePage = () => {
       sx={{
         minHeight: '100vh',
         background: 'linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)',
-        color: '#4b2e2b',
+        color: '#3a241f',
         overflowX: 'hidden',
       }}
     >
@@ -106,17 +106,17 @@ const HomePage = () => {
                 fontWeight="bold"
                 sx={{
                   mb: 2,
-                  color: '#6b1f1a', // sötét vörös
+                  color: '#5a1814',
                 }}
               >
-                Gesture Vision AI
+                Gesture Vision <span style={{ color: '#2f5a3a' }}>AI</span>
               </Typography>
 
-              <Typography variant="h5" sx={{ mb: 2, color: '#5a3a2e' }}>
+              <Typography variant="h5" sx={{ mb: 2, color: '#482d24' }}>
                 {t('homePage.subtitle')}
               </Typography>
 
-              <Typography variant="body1" sx={{ mb: 4, color: '#6a4a3c' }}>
+              <Typography variant="body1" sx={{ mb: 4, color: '#50362b' }}>
                 {t('homePage.subsubtitle')}
               </Typography>
             </motion.div>
@@ -144,20 +144,20 @@ const HomePage = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    color: '#4b2e2b',
+                    color: '#3a241f',
                   }}
                 >
                   <CardContent>
                     <Typography
                       variant="h5"
-                      sx={{ mb: 2, fontWeight: 600, color: '#6b1f1a' }}
+                      sx={{ mb: 2, fontWeight: 600, color: '#5a1814' }}
                     >
                       {f.icon} {f.title}
                     </Typography>
 
                     <Typography
                       variant="body1"
-                      sx={{ mb: 2, color: '#5a3a2e', fontSize: '1.05rem' }}
+                      sx={{ mb: 2, color: '#482d24', fontSize: '1.05rem' }}
                     >
                       {f.desc}
                     </Typography>
@@ -167,13 +167,13 @@ const HomePage = () => {
                         <Box key={i} sx={{ mt: 1 }}>
                           <Typography
                             variant="subtitle1"
-                            sx={{ mb: 0.5, fontWeight: 600, color: '#6b1f1a' }}
+                            sx={{ mb: 0.5, fontWeight: 600, color: '#5a1814' }}
                           >
                             {ex.icon} {ex.title}
                           </Typography>
                           <Typography
                             variant="body2"
-                            sx={{ color: '#6a4a3c', fontSize: '1rem' }}
+                            sx={{ color: '#50362b', fontSize: '1rem' }}
                           >
                             {ex.desc}
                           </Typography>
@@ -186,15 +186,13 @@ const HomePage = () => {
                       <Button
                         variant="contained"
                         sx={{
-                          background: '#6b1f1a',
+                          background: '#2f5a3a',
                           color: '#fff',
                           fontWeight: 'bold',
                           borderRadius: '12px',
                           px: 4,
-                          boxShadow: '0 6px 20px rgba(107,31,26,0.4)',
                           '&:hover': {
-                            background: '#5a1814',
-                            boxShadow: '0 8px 30px rgba(107,31,26,0.6)',
+                            background: '#254930',
                           },
                         }}
                         onClick={() => navigate('/presentation')}

@@ -129,27 +129,40 @@ const GestureDetailPage = () => {
 
     return (
         <div
-            className="container"
             style={{
-                backgroundColor,
+                minHeight: "100vh",
+                background: "linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)",
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
                 justifyContent: "center",
-                height: "85vh",
-                width: "58%",
-                borderRadius: "10px",
+                alignItems: "flex-start",
+                paddingTop: "30px",
+                paddingLeft: "16px",
+                paddingRight: "16px",
             }}
         >
-            {currentGestureData && (
-                <p style={{ marginRight: "3px", marginLeft: "3px", marginTop: "10px", fontSize: "16px", fontWeight: "bold", textAlign: "center", }}>
-                    {currentGestureData.description}
+            <div
+                className="container"
+                style={{
+                    backgroundColor,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: "85vh",
+                    width: "58%",
+                    borderRadius: "10px",
+                }}
+            >
+                {currentGestureData && (
+                    <p style={{ marginRight: "3px", marginLeft: "3px", marginTop: "15px", fontSize: "16px", fontWeight: "bold", textAlign: "center", }}>
+                        {currentGestureData.description}
+                    </p>
+                )}
+                <Webcam ref={webcamRef} style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }} />
+                <p style={{ marginTop: "10px", fontSize: "20px", fontWeight: "bold" }}>
+                    {t("presentationPage.recognizedGesture")} {gesture}
                 </p>
-            )}
-            <Webcam ref={webcamRef} style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }} />
-            <p style={{ marginTop: "15px", fontSize: "20px", fontWeight: "bold" }}>
-                {t("presentationPage.recognizedGesture")} {gesture}
-            </p>
+            </div>
         </div>
     );
 };

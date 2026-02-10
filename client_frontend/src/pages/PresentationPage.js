@@ -443,58 +443,68 @@ const PresentationPage = () => {
     return (
         <>
             <CursorFollower markerPosition={markerPosition} />
-            <div className="container">
-                <div ref={containerRef} className="canvas-container">
-                    <Webcam
-                        ref={webcamRef}
-                        style={{
-                            display: "none",
-                            width: "100%",
-                            height: "100%",
-                            // transform: "scaleX(-1)"
-                        }}
-                    />
+            <div
+                style={{
+                    minHeight: "100vh",
+                    background: "linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)",
+                    color: "#4a2f28",
+                    paddingTop: "16px",
+                }}
+            >
+                <div className="container">
+                    <div ref={containerRef} className="canvas-container">
+                        <Webcam
+                            ref={webcamRef}
+                            style={{
+                                display: "none",
+                                width: "100%",
+                                height: "100%",
+                                // transform: "scaleX(-1)"
+                            }}
+                        />
 
-                    <div
-                        style={{
-                            display: `${!load ? " " : "none"}`
-                        }}
-                    >
-                        <DisplayLottie animationData={loader} />
+                        <div
+                            className="presentation-loader"
+                            style={{
+                                display: `${!load ? " " : "none"}`
+                            }}
+                        >
+                            <DisplayLottie animationData={loader} />
+                        </div>
+                        <canvas
+                            ref={canvasRef}
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                // transform: "scaleX(-1)",
+                            }}
+                        ></canvas>
                     </div>
-                    <canvas
-                        ref={canvasRef}
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            // transform: "scaleX(-1)",
-                        }}
-                    ></canvas>
-                </div>
 
-                <div className="backgroundContainer">
-                    <div className="backgrounds">
-                        <img id="vbackground" src={imageURL} alt="The Screan" className="background" />
+                    <div className="backgroundContainer">
+                        <div className="backgrounds">
+                            <img id="vbackground" src={imageURL} alt="The Screan" className="background" />
+                        </div>
+
+                        <label className="label-style">
+                            {t('presentationPage.uploadFile')}
+                            <input type="file" accept="image/*,.jpg,.jpeg,.png,.pdf,.ppt,.pptx" className="file-input" onChange={imageHandler} />
+                        </label>
+
+                        <button className="button-style" onClick={subscribed ? unsubscribeFromWebhook : subscribeToWebhook}>
+                            {subscribed ? t('presentationPage.stop') : t('presentationPage.gestureDetection')}
+                        </button>
+
+                        <button variant="contained" className="button-style" onClick={() => setShowPerson((prev) => !prev)}>
+                            {showPerson ? t('presentationPage.hidePerson') : t('presentationPage.showPerson')}
+                        </button>
+
+                        <button className="button-style" onClick={toggleFullScreen}>
+                            {fullScreenMode ? t('presentationPage.exitFullScreen') : t('presentationPage.fullScreen')}
+                        </button>
+
+                        <p>{subscribed && `${t('presentationPage.recognizedGesture')} ${gesture}`}</p>
                     </div>
-
-                    <label className="label-style">
-                        {t('presentationPage.uploadFile')}
-                        <input type="file" accept="image/*,.jpg,.jpeg,.png,.pdf,.ppt,.pptx" className="file-input" onChange={imageHandler} />
-                    </label>
-
-                    <button className="button-style" onClick={subscribed ? unsubscribeFromWebhook : subscribeToWebhook}>
-                        {subscribed ? t('presentationPage.stop') : t('presentationPage.gestureDetection')}
-                    </button>
-
-                    <button variant="contained" className="button-style" onClick={() => setShowPerson((prev) => !prev)}>
-                        {showPerson ? t('presentationPage.hidePerson') : t('presentationPage.showPerson')}
-                    </button>
-
-                    <button className="button-style" onClick={toggleFullScreen}>
-                        {fullScreenMode ? t('presentationPage.exitFullScreen') : t('presentationPage.fullScreen')}
-                    </button>
-
-                    <p>{subscribed && `${t('presentationPage.recognizedGesture')} ${gesture}`}</p>
                 </div>
             </div>
         </>
