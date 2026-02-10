@@ -1,0 +1,7 @@
+FROM node:18-alpine
+WORKDIR /app/client_frontend
+COPY client_frontend/package.json client_frontend/package-lock.json /app/client_frontend/
+RUN npm install
+COPY client_frontend /app/client_frontend
+EXPOSE 9000
+CMD ["node","webhook_server.js"]

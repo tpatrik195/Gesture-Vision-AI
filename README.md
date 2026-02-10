@@ -9,3 +9,5 @@ run client app:
     
     run react app:      cd Edge-AI-Vision/client_frontend
                         npm start
+
+run with docker-compose: docker compose -f docker/docker-compose.yml up --build

@@ -19,10 +19,10 @@ GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url
 ).toString();
 
-const SERVER_URL = "http://127.0.0.1:8000";
-const WEBHOOK_URL = "http://127.0.0.1:9000/webhook";
+const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
 
-const socket = io("http://localhost:9000");
+const socket = io(process.env.REACT_APP_SOCKET_URL || "http://127.0.0.1:9000");
 
 const PresentationPage = () => {
     const webcamRef = useRef(null);

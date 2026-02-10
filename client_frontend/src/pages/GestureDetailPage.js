@@ -7,9 +7,9 @@ import "../App.css";
 import { getGestures } from "../utils/gestureOptions";
 import { useParams } from "react-router-dom";
 
-const SERVER_URL = "http://127.0.0.1:8000";
-const WEBHOOK_URL = "http://127.0.0.1:9000/webhook";
-const socket = io("http://localhost:9000");
+const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
+const socket = io(process.env.REACT_APP_SOCKET_URL || "http://127.0.0.1:9000");
 
 const GestureDetailPage = () => {
     const webcamRef = useRef(null);

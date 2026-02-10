@@ -5,8 +5,8 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { Box } from '@mui/material';
 
-const SERVER_URL = "http://127.0.0.1:8000";
-const WEBHOOK_URL = "http://127.0.0.1:9000/webhook";
+const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
 
 export default function PracticeCard({ id, name, image, t }) {
   const navigate = useNavigate();
