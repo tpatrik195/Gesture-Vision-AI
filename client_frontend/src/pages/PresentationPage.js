@@ -50,6 +50,9 @@ const PresentationPage = () => {
     const { t } = useTranslation();
 
     const onResults = async (results) => {
+        if (!webcamRef.current || !webcamRef.current.video) {
+            return;
+        }
         const img = document.getElementById('vbackground')
         const videoWidth = webcamRef.current.video.videoWidth;
         const videoHeight = webcamRef.current.video.videoHeight;
