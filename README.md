@@ -8,3 +8,5 @@ run client app:
                         npm start
 
 run with docker-compose: docker compose -f docker/docker-compose.yml up --build
+
+export DATABASE_URL=postgresql+psycopg2://gesture:gesture_password@localhost:5432/gesture_db

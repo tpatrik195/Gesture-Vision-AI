@@ -4,3 +4,6 @@ opencv-python-headless
 mediapipe
 numpy
 requests
+sqlalchemy
+psycopg2-binary
+pydantic

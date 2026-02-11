@@ -1,12 +1,19 @@
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Query
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Query, Request
+from pydantic import BaseModel
 import cv2
 import numpy as np
 from app.api.process import process_hand_gesture
+from app.db import upsert_client
 
 import logging
 
 router = APIRouter()
+
+class ClientRegistration(BaseModel):
+    clientId: str
+    consentAccepted: Optional[bool] = None
 
 websocket_clients = {}
 gesture_buffers = {}
@@ -74,6 +81,44 @@ async def websocket_endpoint(websocket: WebSocket):
         websocket_clients.pop(client_id, None)
         gesture_buffers.pop(client_id, None)
 
+
+@router.post("/register_client")
+async def register_client(payload: ClientRegistration, request: Request):
+    if not payload.clientId:
+        raise HTTPException(status_code=400, detail="clientId is required")
+    client_ip = request.client.host if request.client else None
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    user_agent = request.headers.get("user-agent")
+    upsert_client(
+        client_id=payload.clientId,
+        consent_accepted=payload.consentAccepted,
+        consent_at=datetime.utcnow() if payload.consentAccepted else None,
+        client_ip=client_ip,
+        origin=origin,
+        user_agent=user_agent,
+        last_seen_at=datetime.utcnow(),
+    )
+    return {"message": "registered"}
+
+
+@router.post("/client_consent")
+async def client_consent(payload: ClientRegistration, request: Request):
+    if not payload.clientId:
+        raise HTTPException(status_code=400, detail="clientId is required")
+    client_ip = request.client.host if request.client else None
+    origin = request.headers.get("origin") or request.headers.get("referer")
+    user_agent = request.headers.get("user-agent")
+    upsert_client(
+        client_id=payload.clientId,
+        consent_accepted=payload.consentAccepted,
+        consent_at=datetime.utcnow() if payload.consentAccepted else None,
+        client_ip=client_ip,
+        origin=origin,
+        user_agent=user_agent,
+        last_seen_at=datetime.utcnow(),
+    )
+    return {"message": "updated"}
+
 async def notify_subscribers(client_id, gesture):
     client = websocket_clients.get(client_id)
     if not client:
@@ -101,11 +146,19 @@ async def notify_subscribers(client_id, gesture):
 #     await asyncio.sleep(3)
 
 @router.post("/process_frame")
-async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")):
+async def process_frame(frame: UploadFile = File(...), clientId: str = Query(""), request: Request = None):
     # global latest_segmented_frame
     try:
         if not clientId:
             raise HTTPException(status_code=400, detail="clientId is required")
+        if request is not None:
+            upsert_client(
+                client_id=clientId,
+                origin=request.headers.get("origin") or request.headers.get("referer"),
+                user_agent=request.headers.get("user-agent"),
+                client_ip=request.client.host if request.client else None,
+                last_seen_at=datetime.utcnow(),
+            )
         img_array = np.frombuffer(await frame.read(), np.uint8)
         # img_bytes = await frame.read()
         # print(len(img_bytes))  # Megnézheted, hogy hány byte-ot sikerült beolvasni

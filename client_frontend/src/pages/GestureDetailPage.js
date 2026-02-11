@@ -50,12 +50,28 @@ const stopCameraTracks = () => {
         const existingId = sessionStorage.getItem("clientId");
         if (existingId) {
             setClientId(existingId);
+            fetch(`${SERVER_URL}/register_client`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    clientId: existingId,
+                    consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
+                }),
+            }).catch(() => {});
             return;
         }
         const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
             || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         sessionStorage.setItem("clientId", newId);
         setClientId(newId);
+        fetch(`${SERVER_URL}/register_client`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                clientId: newId,
+                consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
+            }),
+        }).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -181,6 +197,13 @@ const stopCameraTracks = () => {
                         onClick={() => {
                             sessionStorage.setItem("cameraConsentAccepted", "true");
                             setConsentAccepted(true);
+                            if (clientId) {
+                                fetch(`${SERVER_URL}/client_consent`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ clientId, consentAccepted: true }),
+                                }).catch(() => {});
+                            }
                         }}
                     >
                         Elfogadom
