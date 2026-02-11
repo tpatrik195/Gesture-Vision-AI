@@ -21,6 +21,16 @@ const GestureDetailPage = () => {
     const wsRef = useRef(null);
     const { t } = useTranslation();
     const location = useLocation();
+const stopCameraTracks = () => {
+    const videoEl = webcamRef.current?.video;
+    const stream = webcamRef.current?.stream || videoEl?.srcObject;
+    if (stream && stream.getTracks) {
+        stream.getTracks().forEach((track) => track.stop());
+    }
+    if (videoEl) {
+        videoEl.srcObject = null;
+    }
+};
     const navigate = useNavigate();
 
     const gestures = getGestures(t);
@@ -102,6 +112,7 @@ const GestureDetailPage = () => {
 
     const unsubscribeFromWebhook = async () => {
         stopFrameStreaming();
+        stopCameraTracks();
     };
 
     const stopFrameStreaming = () => {
@@ -122,6 +133,7 @@ const GestureDetailPage = () => {
             if (location.pathname.startsWith("/practice/")) {
                 unsubscribeFromWebhook();
             }
+            stopCameraTracks();
         };
     }, [location.pathname, consentAccepted]);
 

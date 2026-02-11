@@ -50,9 +50,30 @@ const PresentationPage = () => {
     const cameraRef = useRef(null);
     const segmentationRef = useRef(null);
     const wsRef = useRef(null);
+    const segmentationActiveRef = useRef(false);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
+
+    const stopCameraTracks = () => {
+        segmentationActiveRef.current = false;
+        try {
+            cameraRef.current?.stop();
+        } catch (e) {}
+        cameraRef.current = null;
+        try {
+            segmentationRef.current?.close();
+        } catch (e) {}
+        segmentationRef.current = null;
+        const videoEl = webcamRef.current?.video;
+        const stream = webcamRef.current?.stream || videoEl?.srcObject;
+        if (stream && stream.getTracks) {
+            stream.getTracks().forEach((track) => track.stop());
+        }
+        if (videoEl) {
+            videoEl.srcObject = null;
+        }
+    };
 
     useEffect(() => {
         const existingId = sessionStorage.getItem("clientId");
@@ -114,6 +135,7 @@ const PresentationPage = () => {
                 wsRef.current.close();
                 wsRef.current = null;
             }
+            stopCameraTracks();
             setSubscribed(false);
         };
     }, []);
@@ -134,6 +156,7 @@ const PresentationPage = () => {
 
         selfieSegmentation.onResults(onResults);
         segmentationRef.current = selfieSegmentation;
+        segmentationActiveRef.current = true;
 
         if (
             typeof webcamRef.current !== "undefined" &&
@@ -141,7 +164,12 @@ const PresentationPage = () => {
         ) {
             const camera = new cam.Camera(webcamRef.current.video, {
                 onFrame: async () => {
-                    await selfieSegmentation.send({ image: webcamRef.current.video });
+                    if (!segmentationActiveRef.current) {
+                        return;
+                    }
+                    try {
+                        await selfieSegmentation.send({ image: webcamRef.current.video });
+                    } catch (e) {}
                 },
                 width: 1280,
                 height: 720
@@ -152,14 +180,7 @@ const PresentationPage = () => {
         }
 
         return () => {
-            try {
-                cameraRef.current?.stop();
-            } catch (e) {}
-            try {
-                segmentationRef.current?.close();
-            } catch (e) {}
-            cameraRef.current = null;
-            segmentationRef.current = null;
+            stopCameraTracks();
         };
     }, [consentAccepted]);
 
@@ -464,6 +485,7 @@ const PresentationPage = () => {
                         {consentAccepted && (
                             <Webcam
                                 ref={webcamRef}
+                                videoConstraints={{ width: 1280, height: 720 }}
                                 style={{
                                     display: "none",
                                     width: "100%",
