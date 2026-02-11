@@ -46,11 +46,13 @@ const PresentationPage = () => {
     const [consentAccepted, setConsentAccepted] = useState(
         sessionStorage.getItem("cameraConsentAccepted") === "true"
     );
+    const [videoReady, setVideoReady] = useState(false);
     const showPersonRef = useRef(showPerson);
     const cameraRef = useRef(null);
     const segmentationRef = useRef(null);
     const wsRef = useRef(null);
     const segmentationActiveRef = useRef(false);
+    const cameraStartedRef = useRef(false);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -61,10 +63,12 @@ const PresentationPage = () => {
             cameraRef.current?.stop();
         } catch (e) {}
         cameraRef.current = null;
+        cameraStartedRef.current = false;
         try {
             segmentationRef.current?.close();
         } catch (e) {}
         segmentationRef.current = null;
+        setVideoReady(false);
         const videoEl = webcamRef.current?.video;
         const stream = webcamRef.current?.stream || videoEl?.srcObject;
         if (stream && stream.getTracks) {
@@ -73,6 +77,34 @@ const PresentationPage = () => {
         if (videoEl) {
             videoEl.srcObject = null;
         }
+    };
+
+    const startCameraIfReady = () => {
+        if (!consentAccepted || !videoReady) {
+            return;
+        }
+        if (cameraStartedRef.current) {
+            return;
+        }
+        const videoEl = webcamRef.current?.video;
+        if (!videoEl || !segmentationRef.current) {
+            return;
+        }
+        const camera = new cam.Camera(videoEl, {
+            onFrame: async () => {
+                if (!segmentationActiveRef.current) {
+                    return;
+                }
+                try {
+                    await segmentationRef.current.send({ image: videoEl });
+                } catch (e) {}
+            },
+            width: 1280,
+            height: 720
+        });
+        cameraRef.current = camera;
+        cameraStartedRef.current = true;
+        camera.start();
     };
 
     useEffect(() => {
@@ -138,7 +170,7 @@ const PresentationPage = () => {
             stopCameraTracks();
             setSubscribed(false);
         };
-    }, []);
+    }, [clientId]);
 
     useEffect(() => {
         if (!consentAccepted) {
@@ -157,32 +189,12 @@ const PresentationPage = () => {
         selfieSegmentation.onResults(onResults);
         segmentationRef.current = selfieSegmentation;
         segmentationActiveRef.current = true;
-
-        if (
-            typeof webcamRef.current !== "undefined" &&
-            webcamRef.current !== null
-        ) {
-            const camera = new cam.Camera(webcamRef.current.video, {
-                onFrame: async () => {
-                    if (!segmentationActiveRef.current) {
-                        return;
-                    }
-                    try {
-                        await selfieSegmentation.send({ image: webcamRef.current.video });
-                    } catch (e) {}
-                },
-                width: 1280,
-                height: 720
-            });
-
-            cameraRef.current = camera;
-            camera.start();
-        }
+        startCameraIfReady();
 
         return () => {
             stopCameraTracks();
         };
-    }, [consentAccepted]);
+    }, [consentAccepted, videoReady]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -286,7 +298,7 @@ const PresentationPage = () => {
     }
 
     const subscribeToWebhook = async () => {
-        if (!consentAccepted) {
+        if (!consentAccepted || !clientId) {
             return;
         }
         setSubscribed(true);
@@ -296,6 +308,10 @@ const PresentationPage = () => {
     const unsubscribeFromWebhook = async () => {
         setSubscribed(false);
         stopFrameStreaming();
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
     };
 
     let frameCounter = 0;
@@ -339,7 +355,7 @@ const PresentationPage = () => {
     };
 
     useEffect(() => {
-        if (!clientId) {
+        if (!clientId || !consentAccepted || !subscribed) {
             return;
         }
         const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
@@ -362,10 +378,12 @@ const PresentationPage = () => {
         };
 
         return () => {
-            ws.close();
-            wsRef.current = null;
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         };
-    }, [clientId]);
+    }, [clientId, consentAccepted, subscribed]);
 
     useEffect(() => {
         const storedSettings = JSON.parse(sessionStorage.getItem("gestureSettings")) || {};
@@ -485,6 +503,10 @@ const PresentationPage = () => {
                         {consentAccepted && (
                             <Webcam
                                 ref={webcamRef}
+                                onUserMedia={() => {
+                                    setVideoReady(true);
+                                    startCameraIfReady();
+                                }}
                                 videoConstraints={{ width: 1280, height: 720 }}
                                 style={{
                                     display: "none",

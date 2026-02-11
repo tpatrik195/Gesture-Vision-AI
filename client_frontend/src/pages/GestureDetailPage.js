@@ -50,7 +50,7 @@ const stopCameraTracks = () => {
     }, []);
 
     useEffect(() => {
-        if (!clientId) {
+        if (!clientId || !consentAccepted) {
             return;
         }
         const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
@@ -68,10 +68,12 @@ const stopCameraTracks = () => {
         };
 
         return () => {
-            ws.close();
-            wsRef.current = null;
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
         };
-    }, [clientId]);
+    }, [clientId, consentAccepted]);
 
     const startFrameStreaming = () => {
         frameInterval.current = setInterval(async () => {
@@ -113,6 +115,10 @@ const stopCameraTracks = () => {
     const unsubscribeFromWebhook = async () => {
         stopFrameStreaming();
         stopCameraTracks();
+        if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+        }
     };
 
     const stopFrameStreaming = () => {
