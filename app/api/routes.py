@@ -1,16 +1,15 @@
 from datetime import datetime
-from fastapi import APIRouter, UploadFile, File, HTTPException, Request
+from fastapi import APIRouter, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Query
 import cv2
 import numpy as np
-import requests
-import asyncio
 from app.api.process import process_hand_gesture
 
 import logging
 
 router = APIRouter()
 
-subscribers = set()
+websocket_clients = {}
+gesture_buffers = {}
 gesture_buffer = []
 GESTURE_THRESHOLD = 1
 
@@ -54,26 +53,36 @@ zoom_in_count = 0
 #         logging.info(f"Received 30 gestures, stopping logging. 'Swipe Right' gestures count: {zoom_in_count}")
 #         logging.getLogger().disabled = True
 
-@router.post("/subscribe_webhook")
-async def subscribe_webhook(url: str):
-    if url in subscribers:
-        raise HTTPException(status_code=400, detail="Already subscribed")
-    subscribers.add(url)
-    return {"message": f"Subscribed: {url}"}
-
-@router.post("/unsubscribe_webhook")
-async def unsubscribe_webhook(url: str):
-    if url not in subscribers:
-        raise HTTPException(status_code=400, detail="Not subscribed")
-    subscribers.remove(url)
-    return {"message": f"Unsubscribed: {url}"}
-
-async def notify_subscribers(gesture):
-    for url in list(subscribers):
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    client_id = websocket.query_params.get("clientId")
+    if not client_id:
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    existing = websocket_clients.get(client_id)
+    if existing:
         try:
-            requests.post(url, json={"gesture": gesture})
-        except Exception as e:
-            print(f"Failed to notify {url}: {e}")
+            await existing.close()
+        except Exception:
+            pass
+    websocket_clients[client_id] = websocket
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        websocket_clients.pop(client_id, None)
+        gesture_buffers.pop(client_id, None)
+
+async def notify_subscribers(client_id, gesture):
+    client = websocket_clients.get(client_id)
+    if not client:
+        return
+    try:
+        await client.send_json({"gesture": gesture})
+    except Exception:
+        websocket_clients.pop(client_id, None)
+        gesture_buffers.pop(client_id, None)
 
 # async def notify_subscribers(gesture):
 #     global last_gesture, last_time_sent
@@ -92,9 +101,11 @@ async def notify_subscribers(gesture):
 #     await asyncio.sleep(3)
 
 @router.post("/process_frame")
-async def process_frame(frame: UploadFile = File(...)):
+async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")):
     # global latest_segmented_frame
     try:
+        if not clientId:
+            raise HTTPException(status_code=400, detail="clientId is required")
         img_array = np.frombuffer(await frame.read(), np.uint8)
         # img_bytes = await frame.read()
         # print(len(img_bytes))  # Megnézheted, hogy hány byte-ot sikerült beolvasni
@@ -113,14 +124,15 @@ async def process_frame(frame: UploadFile = File(...)):
         #     await notify_subscribers(gesture)
         
         # else:
-        if len(gesture_buffer) >= GESTURE_THRESHOLD:
-            gesture_buffer.pop(0)
+        buffer = gesture_buffers.setdefault(clientId, [])
+        if len(buffer) >= GESTURE_THRESHOLD:
+            buffer.pop(0)
 
-        gesture_buffer.append(gesture)
+        buffer.append(gesture)
 
-        if len(gesture_buffer) == GESTURE_THRESHOLD and all(g == gesture for g in gesture_buffer):
-            await notify_subscribers(gesture)
-            gesture_buffer.clear()
+        if len(buffer) == GESTURE_THRESHOLD and all(g == gesture for g in buffer):
+            await notify_subscribers(clientId, gesture)
+            buffer.clear()
 
         return {"message": "frame processed"}
 

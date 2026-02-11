@@ -5,23 +5,8 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import { Box } from '@mui/material';
 
-const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
-
 export default function PracticeCard({ id, name, image, t }) {
   const navigate = useNavigate();
-
-  const subscribeToWebhook = async () => {
-    try {
-      await fetch(`${SERVER_URL}/subscribe_webhook?url=${WEBHOOK_URL}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      navigate(`/practice/${id}`);
-    } catch (error) {
-      console.error("Webhook subscription failed", error);
-    }
-  };
 
   return (
     <Card
@@ -38,7 +23,7 @@ export default function PracticeCard({ id, name, image, t }) {
         borderRadius: 2,
         overflow: 'hidden'
       }}
-      onClick={subscribeToWebhook}
+      onClick={() => navigate(`/practice/${id}`)}
     >
       <Box
         sx={{

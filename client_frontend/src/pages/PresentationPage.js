@@ -1,4 +1,4 @@
- import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
 import { SelfieSegmentation } from "@mediapipe/selfie_segmentation";
 import * as cam from "@mediapipe/camera_utils";
@@ -8,9 +8,10 @@ import DisplayLottie from "../DisplayLottie";
 import loader from '../85646-loading-dots-blue.json'
 import PptxGenJS from "pptxgenjs";
 import html2canvas from "html2canvas";
-import { io } from "socket.io-client";
 import { useTranslation } from 'react-i18next';
 import CursorFollower from "../components/CursorFollower";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
@@ -20,9 +21,8 @@ GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
 
-const socket = io(process.env.REACT_APP_SOCKET_URL || "http://127.0.0.1:9000");
+const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
 
 const PresentationPage = () => {
     const webcamRef = useRef(null);
@@ -42,11 +42,29 @@ const PresentationPage = () => {
     const [fullScreenMode, setFullScreenMode] = useState(false);
     const frameInterval = useRef(null);
     const [markerPosition, setMarkerPosition] = useState(null);
+    const [clientId, setClientId] = useState("");
+    const [consentAccepted, setConsentAccepted] = useState(
+        sessionStorage.getItem("cameraConsentAccepted") === "true"
+    );
     const showPersonRef = useRef(showPerson);
     const cameraRef = useRef(null);
     const segmentationRef = useRef(null);
+    const wsRef = useRef(null);
 
     const { t } = useTranslation();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const existingId = sessionStorage.getItem("clientId");
+        if (existingId) {
+            setClientId(existingId);
+            return;
+        }
+        const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
+            || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem("clientId", newId);
+        setClientId(newId);
+    }, []);
 
     const onResults = async (results) => {
         if (!webcamRef.current || !webcamRef.current.video) {
@@ -55,6 +73,9 @@ const PresentationPage = () => {
         const img = document.getElementById('vbackground')
         const videoWidth = webcamRef.current.video.videoWidth;
         const videoHeight = webcamRef.current.video.videoHeight;
+        if (videoWidth === 0 || videoHeight === 0) {
+            return;
+        }
 
         canvasRef.current.width = videoWidth;
         canvasRef.current.height = videoHeight;
@@ -85,6 +106,22 @@ const PresentationPage = () => {
     }, [showPerson]);
 
     useEffect(() => {
+        return () => {
+            if (frameInterval.current) {
+                clearInterval(frameInterval.current);
+            }
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+            setSubscribed(false);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!consentAccepted) {
+            return;
+        }
         const selfieSegmentation = new SelfieSegmentation({
             locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
@@ -124,7 +161,7 @@ const PresentationPage = () => {
             cameraRef.current = null;
             segmentationRef.current = null;
         };
-    }, []);
+    }, [consentAccepted]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -228,53 +265,23 @@ const PresentationPage = () => {
     }
 
     const subscribeToWebhook = async () => {
-        try {
-            const response = await fetch(`${SERVER_URL}/subscribe_webhook?url=${WEBHOOK_URL}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Subscription failed with status ${response.status}`);
-            }
-
-            await response.json();
-
-            setSubscribed(true);
-            startFrameStreaming();
-        } catch (error) {
-            console.error("Subscription failed", error);
+        if (!consentAccepted) {
+            return;
         }
+        setSubscribed(true);
+        startFrameStreaming();
     };
 
     const unsubscribeFromWebhook = async () => {
-        try {
-            const response = await fetch(`${SERVER_URL}/unsubscribe_webhook?url=${WEBHOOK_URL}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ url: WEBHOOK_URL }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Subscription failed with status ${response.status}`);
-            }
-
-            setSubscribed(false);
-            stopFrameStreaming();
-        } catch (error) {
-            console.error("Unsubscription failed", error);
-        }
+        setSubscribed(false);
+        stopFrameStreaming();
     };
 
     let frameCounter = 0;
 
     const startFrameStreaming = () => {
         frameInterval.current = setInterval(async () => {
-            if (webcamRef.current) {
+            if (webcamRef.current && clientId) {
                 const video = webcamRef.current.video;
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
@@ -291,7 +298,7 @@ const PresentationPage = () => {
                         
 
                         try {
-                            await fetch(`${SERVER_URL}/process_frame?frameId=${frameId}`, {
+                            await fetch(`${SERVER_URL}/process_frame?frameId=${frameId}&clientId=${encodeURIComponent(clientId)}`, {
                                 method: "POST",
                                 body: formData,
                             });
@@ -311,19 +318,33 @@ const PresentationPage = () => {
     };
 
     useEffect(() => {
-        socket.on("gesture_event", async (data) => {
-            setGesture(data.gesture);
+        if (!clientId) {
+            return;
+        }
+        const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
+        wsRef.current = ws;
 
-            if (data.gesture.includes(",")) {
-                const [x, y] = data.gesture.split(',').map(Number);
-                setMarkerPosition({ x, y });
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (!data?.gesture) {
+                    return;
+                }
+                setGesture(data.gesture);
+                if (data.gesture.includes(",")) {
+                    const [x, y] = data.gesture.split(',').map(Number);
+                    setMarkerPosition({ x, y });
+                }
+            } catch (e) {
+                console.error("Invalid WS message", e);
             }
-        });
+        };
 
         return () => {
-            socket.off("gesture_event");
+            ws.close();
+            wsRef.current = null;
         };
-    }, []);
+    }, [clientId]);
 
     useEffect(() => {
         const storedSettings = JSON.parse(sessionStorage.getItem("gestureSettings")) || {};
@@ -401,6 +422,35 @@ const PresentationPage = () => {
     return (
         <>
             <CursorFollower markerPosition={markerPosition} />
+            <Dialog open={!consentAccepted} maxWidth="sm" fullWidth>
+                <DialogTitle>Kamera használat jóváhagyása</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                        A kamera képe titkosítva kerül továbbításra, és kizárólag a gesztusfelismeréshez
+                        használjuk fel. Harmadik félnek nem továbbítjuk, és nem tároljuk.
+                    </Typography>
+                    <Typography variant="body2">
+                        A folytatáshoz kérlek fogadd el a feltételeket.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <MuiButton
+                        variant="outlined"
+                        onClick={() => navigate("/")}
+                    >
+                        Nem fogadom el
+                    </MuiButton>
+                    <MuiButton
+                        variant="contained"
+                        onClick={() => {
+                            sessionStorage.setItem("cameraConsentAccepted", "true");
+                            setConsentAccepted(true);
+                        }}
+                    >
+                        Elfogadom
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
             <div
                 style={{
                     minHeight: "100vh",
@@ -411,14 +461,16 @@ const PresentationPage = () => {
             >
                 <div className="container">
                     <div ref={containerRef} className="canvas-container">
-                        <Webcam
-                            ref={webcamRef}
-                            style={{
-                                display: "none",
-                                width: "100%",
-                                height: "100%",
-                            }}
-                        />
+                        {consentAccepted && (
+                            <Webcam
+                                ref={webcamRef}
+                                style={{
+                                    display: "none",
+                                    width: "100%",
+                                    height: "100%",
+                                }}
+                            />
+                        )}
 
                         <div
                             className="presentation-loader"

@@ -1,40 +1,71 @@
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
-import { io } from "socket.io-client";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "../App.css";
 import { getGestures } from "../utils/gestureOptions";
 import { useParams } from "react-router-dom";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
 
 const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const WEBHOOK_URL = process.env.REACT_APP_WEBHOOK_URL || "http://127.0.0.1:9000/webhook";
-const socket = io(process.env.REACT_APP_SOCKET_URL || "http://127.0.0.1:9000");
+const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
 
 const GestureDetailPage = () => {
     const webcamRef = useRef(null);
     const frameInterval = useRef(null);
     const [gesture, setGesture] = useState("");
+    const [clientId, setClientId] = useState("");
+    const [consentAccepted, setConsentAccepted] = useState(
+        sessionStorage.getItem("cameraConsentAccepted") === "true"
+    );
+    const wsRef = useRef(null);
     const { t } = useTranslation();
     const location = useLocation();
+    const navigate = useNavigate();
 
     const gestures = getGestures(t);
     const { gestureId } = useParams();
     const currentGestureData = gestures.find((g) => g.id === Number(gestureId));
 
     useEffect(() => {
-        socket.on("gesture_event", (data) => {
-            setGesture(data.gesture);
-        });
+        const existingId = sessionStorage.getItem("clientId");
+        if (existingId) {
+            setClientId(existingId);
+            return;
+        }
+        const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
+            || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem("clientId", newId);
+        setClientId(newId);
+    }, []);
+
+    useEffect(() => {
+        if (!clientId) {
+            return;
+        }
+        const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
+        wsRef.current = ws;
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data?.gesture) {
+                    setGesture(data.gesture);
+                }
+            } catch (e) {
+                console.error("Invalid WS message", e);
+            }
+        };
 
         return () => {
-            socket.off("gesture_event");
+            ws.close();
+            wsRef.current = null;
         };
-    }, []);
+    }, [clientId]);
 
     const startFrameStreaming = () => {
         frameInterval.current = setInterval(async () => {
-            if (webcamRef.current && webcamRef.current.video.readyState === 4) {
+            if (webcamRef.current && webcamRef.current.video.readyState === 4 && clientId) {
                 const video = webcamRef.current.video;
                 const canvas = document.createElement("canvas");
                 const ctx = canvas.getContext("2d");
@@ -49,7 +80,7 @@ const GestureDetailPage = () => {
                         formData.append("frame", blob, "frame.jpg");
 
                         try {
-                            await fetch(`${SERVER_URL}/process_frame`, {
+                            await fetch(`${SERVER_URL}/process_frame?clientId=${encodeURIComponent(clientId)}`, {
                                 method: "POST",
                                 body: formData,
                             });
@@ -63,39 +94,14 @@ const GestureDetailPage = () => {
     };
 
     const subscribeToWebhook = async () => {
-        try {
-            const response = await fetch(`${SERVER_URL}/subscribe_webhook?url=${WEBHOOK_URL}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-
-            if (!response.ok) {
-                throw new Error(`Subscription failed with status ${response.status}`);
-            }
-
-        } catch (error) {
-            console.error("Webhook subscription failed", error);
+        if (!consentAccepted) {
+            return;
         }
+        startFrameStreaming();
     };
 
     const unsubscribeFromWebhook = async () => {
-        try {
-            const response = await fetch(`${SERVER_URL}/unsubscribe_webhook?url=${WEBHOOK_URL}`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ url: WEBHOOK_URL }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Subscription failed with status ${response.status}`);
-            }
-
-            stopFrameStreaming();
-        } catch (error) {
-            console.error("Unsubscription failed", error);
-        }
+        stopFrameStreaming();
     };
 
     const stopFrameStreaming = () => {
@@ -106,16 +112,18 @@ const GestureDetailPage = () => {
     };
 
     useEffect(() => {
+        if (!consentAccepted) {
+            return;
+        }
         subscribeToWebhook();
         startFrameStreaming();
 
         return () => {
             if (location.pathname.startsWith("/practice/")) {
-                console.log("Leaving /practice/:gestureId, unsubscribing from webhook...");
                 unsubscribeFromWebhook();
             }
         };
-    }, [location.pathname]);
+    }, [location.pathname, consentAccepted]);
 
     let backgroundColor = "white";
     if (gesture !== "no hand detected" && gesture !== "Normal" && currentGestureData) {
@@ -137,6 +145,35 @@ const GestureDetailPage = () => {
                 paddingRight: "16px",
             }}
         >
+            <Dialog open={!consentAccepted} maxWidth="sm" fullWidth>
+                <DialogTitle>Kamera használat jóváhagyása</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                        A kamera képe titkosítva kerül továbbításra, és kizárólag a gesztusfelismeréshez
+                        használjuk fel. Harmadik félnek nem továbbítjuk, és nem tároljuk.
+                    </Typography>
+                    <Typography variant="body2">
+                        A folytatáshoz kérlek fogadd el a feltételeket.
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <MuiButton
+                        variant="outlined"
+                        onClick={() => navigate("/practice")}
+                    >
+                        Nem fogadom el
+                    </MuiButton>
+                    <MuiButton
+                        variant="contained"
+                        onClick={() => {
+                            sessionStorage.setItem("cameraConsentAccepted", "true");
+                            setConsentAccepted(true);
+                        }}
+                    >
+                        Elfogadom
+                    </MuiButton>
+                </DialogActions>
+            </Dialog>
             <div
                 className="container"
                 style={{
@@ -155,7 +192,9 @@ const GestureDetailPage = () => {
                         {currentGestureData.description}
                     </p>
                 )}
-                <Webcam ref={webcamRef} style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }} />
+                {consentAccepted && (
+                    <Webcam ref={webcamRef} style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }} />
+                )}
                 <p style={{ marginTop: "10px", fontSize: "20px", fontWeight: "bold" }}>
                     {t("presentationPage.recognizedGesture")} {gesture}
                 </p>
