@@ -53,6 +53,7 @@ const PresentationPage = () => {
     const wsRef = useRef(null);
     const segmentationActiveRef = useRef(false);
     const cameraStartedRef = useRef(false);
+    const mediaStreamRef = useRef(null);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -70,14 +71,23 @@ const PresentationPage = () => {
         segmentationRef.current = null;
         setVideoReady(false);
         const videoEl = webcamRef.current?.video;
-        const stream = webcamRef.current?.stream || videoEl?.srcObject;
+        const stream = mediaStreamRef.current || webcamRef.current?.stream || videoEl?.srcObject;
         if (stream && stream.getTracks) {
             stream.getTracks().forEach((track) => track.stop());
         }
         if (videoEl) {
             videoEl.srcObject = null;
         }
+        mediaStreamRef.current = null;
     };
+
+    useEffect(() => {
+        const handleUnload = () => {
+            stopCameraTracks();
+        };
+        window.addEventListener("beforeunload", handleUnload);
+        return () => window.removeEventListener("beforeunload", handleUnload);
+    }, []);
 
     const startCameraIfReady = () => {
         if (!consentAccepted || !videoReady) {
@@ -170,7 +180,7 @@ const PresentationPage = () => {
             stopCameraTracks();
             setSubscribed(false);
         };
-    }, [clientId]);
+    }, [clientId, consentAccepted]);
 
     useEffect(() => {
         if (!consentAccepted) {
@@ -503,7 +513,11 @@ const PresentationPage = () => {
                         {consentAccepted && (
                             <Webcam
                                 ref={webcamRef}
-                                onUserMedia={() => {
+                                onUserMediaError={() => {
+                                    setVideoReady(false);
+                                }}
+                                onUserMedia={(stream) => {
+                                    mediaStreamRef.current = stream;
                                     setVideoReady(true);
                                     startCameraIfReady();
                                 }}

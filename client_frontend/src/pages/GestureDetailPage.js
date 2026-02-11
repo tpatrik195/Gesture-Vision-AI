@@ -19,18 +19,27 @@ const GestureDetailPage = () => {
         sessionStorage.getItem("cameraConsentAccepted") === "true"
     );
     const wsRef = useRef(null);
+    const mediaStreamRef = useRef(null);
     const { t } = useTranslation();
     const location = useLocation();
 const stopCameraTracks = () => {
     const videoEl = webcamRef.current?.video;
-    const stream = webcamRef.current?.stream || videoEl?.srcObject;
+    const stream = mediaStreamRef.current || webcamRef.current?.stream || videoEl?.srcObject;
     if (stream && stream.getTracks) {
         stream.getTracks().forEach((track) => track.stop());
     }
     if (videoEl) {
         videoEl.srcObject = null;
     }
+    mediaStreamRef.current = null;
 };
+    useEffect(() => {
+        const handleUnload = () => {
+            stopCameraTracks();
+        };
+        window.addEventListener("beforeunload", handleUnload);
+        return () => window.removeEventListener("beforeunload", handleUnload);
+    }, []);
     const navigate = useNavigate();
 
     const gestures = getGestures(t);
@@ -67,7 +76,11 @@ const stopCameraTracks = () => {
             }
         };
 
+        startFrameStreaming();
+
         return () => {
+            stopFrameStreaming();
+            stopCameraTracks();
             if (wsRef.current) {
                 wsRef.current.close();
                 wsRef.current = null;
@@ -105,22 +118,6 @@ const stopCameraTracks = () => {
         }, 100);
     };
 
-    const subscribeToWebhook = async () => {
-        if (!consentAccepted) {
-            return;
-        }
-        startFrameStreaming();
-    };
-
-    const unsubscribeFromWebhook = async () => {
-        stopFrameStreaming();
-        stopCameraTracks();
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
-    };
-
     const stopFrameStreaming = () => {
         if (frameInterval.current) {
             clearInterval(frameInterval.current);
@@ -129,19 +126,17 @@ const stopCameraTracks = () => {
     };
 
     useEffect(() => {
-        if (!consentAccepted) {
-            return;
-        }
-        subscribeToWebhook();
-        startFrameStreaming();
-
         return () => {
             if (location.pathname.startsWith("/practice/")) {
-                unsubscribeFromWebhook();
+                stopFrameStreaming();
+                stopCameraTracks();
+                if (wsRef.current) {
+                    wsRef.current.close();
+                    wsRef.current = null;
+                }
             }
-            stopCameraTracks();
         };
-    }, [location.pathname, consentAccepted]);
+    }, [location.pathname]);
 
     let backgroundColor = "white";
     if (gesture !== "no hand detected" && gesture !== "Normal" && currentGestureData) {
@@ -211,7 +206,16 @@ const stopCameraTracks = () => {
                     </p>
                 )}
                 {consentAccepted && (
-                    <Webcam ref={webcamRef} style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }} />
+                    <Webcam
+                        ref={webcamRef}
+                        onUserMedia={(stream) => {
+                            mediaStreamRef.current = stream;
+                        }}
+                        onUserMediaError={() => {
+                            mediaStreamRef.current = null;
+                        }}
+                        style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }}
+                    />
                 )}
                 <p style={{ marginTop: "10px", fontSize: "20px", fontWeight: "bold" }}>
                     {t("presentationPage.recognizedGesture")} {gesture}
