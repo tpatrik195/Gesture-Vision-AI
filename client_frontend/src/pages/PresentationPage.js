@@ -3,7 +3,6 @@ import Webcam from "react-webcam";
 import { SelfieSegmentation } from "@mediapipe/selfie_segmentation";
 import * as cam from "@mediapipe/camera_utils";
 import '../App.css';
-import defaultImg from '../background.jpg'
 import DisplayLottie from "../DisplayLottie";
 import loader from '../85646-loading-dots-blue.json'
 import PptxGenJS from "pptxgenjs";
@@ -28,7 +27,7 @@ const PresentationPage = () => {
     const webcamRef = useRef(null);
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
-    const [imageURL, setimageURL] = useState(defaultImg);
+    const [imageURL, setimageURL] = useState("");
     const [load, setLoad] = useState(false);
     const [pdfPageNum, setPdfPageNum] = useState(1);
     const [pptSlideNum, setPptSlideNum] = useState(0);
@@ -166,9 +165,13 @@ const PresentationPage = () => {
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
         if (showPersonRef.current) {
+            canvasCtx.save();
+            canvasCtx.translate(canvasElement.width, 0);
+            canvasCtx.scale(-1, 1);
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
             canvasCtx.globalCompositeOperation = 'destination-atop';
             canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.restore();
         }
 
         canvasCtx.globalCompositeOperation = 'destination-over';
@@ -396,7 +399,17 @@ const PresentationPage = () => {
                 setGesture(data.gesture);
                 if (data.gesture.includes(",")) {
                     const [x, y] = data.gesture.split(',').map(Number);
-                    setMarkerPosition({ x, y });
+                    const canvasEl = canvasRef.current;
+                    if (canvasEl) {
+                        const rect = canvasEl.getBoundingClientRect();
+                        const scaleX = rect.width / canvasEl.width;
+                        const scaleY = rect.height / canvasEl.height;
+                        const px = rect.left + x * scaleX;
+                        const py = rect.top + y * scaleY;
+                        setMarkerPosition({ x: px, y: py });
+                    } else {
+                        setMarkerPosition({ x, y });
+                    }
                 }
             } catch (e) {
                 console.error("Invalid WS message", e);
@@ -571,8 +584,10 @@ const PresentationPage = () => {
                     </div>
 
                     <div className="backgroundContainer">
-                        <div className="backgrounds">
-                            <img id="vbackground" src={imageURL} alt="The Screan" className="background" />
+        <div className="backgrounds">
+                            {imageURL && (
+                                <img id="vbackground" src={imageURL} alt="The Screan" className="background" />
+                            )}
                         </div>
 
                         <label className="label-style">

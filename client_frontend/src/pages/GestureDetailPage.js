@@ -237,7 +237,7 @@ const stopCameraTracks = () => {
                         onUserMediaError={() => {
                             mediaStreamRef.current = null;
                         }}
-                        style={{ width: "100%", maxWidth: "840px", borderRadius: "10px" }}
+                        style={{ width: "100%", maxWidth: "840px", borderRadius: "10px", transform: "scaleX(-1)" }}
                     />
                 )}
                 <p style={{ marginTop: "10px", fontSize: "20px", fontWeight: "bold" }}>

@@ -10,6 +10,19 @@ class HandGestureDetector:
         self.mp_drawing = mp.solutions.drawing_utils
         self.prev_left_orientation = None
         self.prevprev_left_orientation = None  
+        self.pointer_x = None
+        self.pointer_y = None
+        self.pointer_dir_x = None
+        self.pointer_dir_y = None
+        self.pointer_alpha = 0.35
+        self.pointer_deadzone_base = 12
+        self.pointer_deadzone_min = 4
+        self.pointer_max_step = 25
+        self.pointer_dir_alpha = 0.45
+        self.pointer_calib_frames = 0
+        self.pointer_calib_sum = 0.0
+        self.pointer_calib_target = 30
+        self.pointer_project_scale = 1.8
 
     def detect_hands(self, frame_rgb):
         return self.hands.process(frame_rgb)
@@ -42,6 +55,46 @@ class HandGestureDetector:
         x_px = int(landmark.x * w)
         y_px = int(landmark.y * h)
         return x_px, y_px
+
+    def get_landmark_px(self, landmark, image_shape):
+        h, w, _ = image_shape
+        return landmark.x * w, landmark.y * h
+
+    def smooth_pointer_direction(self, dx, dy):
+        mag = np.hypot(dx, dy)
+        if mag < 1e-5:
+            return None
+        ndx = dx / mag
+        ndy = dy / mag
+        if self.pointer_dir_x is None or self.pointer_dir_y is None:
+            self.pointer_dir_x = ndx
+            self.pointer_dir_y = ndy
+            return ndx, ndy
+        self.pointer_dir_x = self.pointer_dir_x + self.pointer_dir_alpha * (ndx - self.pointer_dir_x)
+        self.pointer_dir_y = self.pointer_dir_y + self.pointer_dir_alpha * (ndy - self.pointer_dir_y)
+        mag2 = np.hypot(self.pointer_dir_x, self.pointer_dir_y)
+        if mag2 < 1e-5:
+            return None
+        return self.pointer_dir_x / mag2, self.pointer_dir_y / mag2
+
+    def smooth_pointer(self, x, y):
+        if self.pointer_x is None or self.pointer_y is None:
+            self.pointer_x = x
+            self.pointer_y = y
+            return x, y
+        dx = x - self.pointer_x
+        dy = y - self.pointer_y
+        speed = np.hypot(dx, dy)
+        deadzone = self.pointer_deadzone_base - min(speed, 25) * (self.pointer_deadzone_base - self.pointer_deadzone_min) / 25
+        if abs(dx) < deadzone and abs(dy) < deadzone:
+            return int(self.pointer_x), int(self.pointer_y)
+        if abs(dx) > self.pointer_max_step:
+            dx = self.pointer_max_step if dx > 0 else -self.pointer_max_step
+        if abs(dy) > self.pointer_max_step:
+            dy = self.pointer_max_step if dy > 0 else -self.pointer_max_step
+        self.pointer_x = self.pointer_x + self.pointer_alpha * dx
+        self.pointer_y = self.pointer_y + self.pointer_alpha * dy
+        return int(self.pointer_x), int(self.pointer_y)
 
     def detect_gesture(self, hand_landmarks, handedness_list, frame):
         if not hand_landmarks or not handedness_list:
@@ -204,6 +257,19 @@ class HandGestureDetector:
                     return False
                 return True
 
+            def is_pointing(landmarks, mp_hands):
+                index_tip = landmarks[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                index_pip = landmarks[mp_hands.HandLandmark.INDEX_FINGER_PIP]
+                index_mcp = landmarks[mp_hands.HandLandmark.INDEX_FINGER_MCP]
+                if not (index_tip.y < index_pip.y < index_mcp.y):
+                    return False
+                for finger in ["MIDDLE_FINGER", "RING_FINGER", "PINKY"]:
+                    tip = landmarks[getattr(mp_hands.HandLandmark, f"{finger}_TIP")]
+                    pip = landmarks[getattr(mp_hands.HandLandmark, f"{finger}_PIP")]
+                    if tip.y < pip.y:
+                        return False
+                return True
+
             thumb_index_angle = calculate_angle(thumb_tip, index_tip, wrist)
             index_middle_angle = calculate_angle(index_tip, middle_tip, wrist)
             middle_ring_angle = calculate_angle(middle_tip, ring_tip, wrist)
@@ -286,7 +352,7 @@ class HandGestureDetector:
                         hand_gesture = f"Option {finger_count}"
                     else:
                         hand_gesture = "None"
-                elif right_orientation == "upward":
+                elif right_orientation in ("upward", "leftward", "rightward", "unknown"):
                     # if is_right_fist(hand.landmark, self.mp_hands):
                     #     right_fist = True
                     if is_flat_open_hand(landmarks, self.mp_hands):
@@ -295,13 +361,6 @@ class HandGestureDetector:
                         hand_gesture = "Zoom Out"
                     elif thumb_index_angle > 30 and index_middle_angle > 5 and middle_ring_angle > 5 and ring_pinky_angle > 10:
                         hand_gesture = "Zoom In"
-                    elif wrist_index_angle > 160 and wrist_middle_angle < 25 and wrist_ring_angle < 20 and wrist_pinky_angle < 20:
-                        # gesture = "Pointing"
-                        index_tip_position = self.get_index_tip_position(hand_landmarks, frame.shape)
-                        x, y = index_tip_position
-                        # print(f"{x},{y}")
-                        hand_gesture = "Pointing"
-                        return f"{x},{y}"
                     else:
                         hand_gesture = "None"
                     tip_ids = [4, 8, 12, 16, 20]
