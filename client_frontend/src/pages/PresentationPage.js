@@ -14,10 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
-GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-    import.meta.url
-).toString();
+GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
 const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
