@@ -76,8 +76,34 @@ async def websocket_endpoint(websocket: WebSocket):
     websocket_clients[client_id] = websocket
     try:
         while True:
-            await websocket.receive_text()
+            message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                break
+
+            frame_bytes = message.get("bytes")
+            if frame_bytes is None:
+                # ignore text/ping style messages
+                continue
+
+            img_array = np.frombuffer(frame_bytes, np.uint8)
+            img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+            if img is None:
+                continue
+
+            img = cv2.flip(img, 1)
+            gesture, _ = process_hand_gesture(img)
+
+            buffer = gesture_buffers.setdefault(client_id, [])
+            if len(buffer) >= GESTURE_THRESHOLD:
+                buffer.pop(0)
+            buffer.append(gesture)
+
+            if len(buffer) == GESTURE_THRESHOLD and all(g == gesture for g in buffer):
+                await notify_subscribers(client_id, gesture)
+                buffer.clear()
     except WebSocketDisconnect:
+        pass
+    finally:
         websocket_clients.pop(client_id, None)
         gesture_buffers.pop(client_id, None)
 
@@ -89,15 +115,16 @@ async def register_client(payload: ClientRegistration, request: Request):
     client_ip = request.client.host if request.client else None
     origin = request.headers.get("origin") or request.headers.get("referer")
     user_agent = request.headers.get("user-agent")
-    upsert_client(
-        client_id=payload.clientId,
-        consent_accepted=payload.consentAccepted,
-        consent_at=datetime.utcnow() if payload.consentAccepted else None,
-        client_ip=client_ip,
-        origin=origin,
-        user_agent=user_agent,
-        last_seen_at=datetime.utcnow(),
-    )
+    # DB write disabled for now:
+    # upsert_client(
+    #     client_id=payload.clientId,
+    #     consent_accepted=payload.consentAccepted,
+    #     consent_at=datetime.utcnow() if payload.consentAccepted else None,
+    #     client_ip=client_ip,
+    #     origin=origin,
+    #     user_agent=user_agent,
+    #     last_seen_at=datetime.utcnow(),
+    # )
     return {"message": "registered"}
 
 
@@ -108,15 +135,16 @@ async def client_consent(payload: ClientRegistration, request: Request):
     client_ip = request.client.host if request.client else None
     origin = request.headers.get("origin") or request.headers.get("referer")
     user_agent = request.headers.get("user-agent")
-    upsert_client(
-        client_id=payload.clientId,
-        consent_accepted=payload.consentAccepted,
-        consent_at=datetime.utcnow() if payload.consentAccepted else None,
-        client_ip=client_ip,
-        origin=origin,
-        user_agent=user_agent,
-        last_seen_at=datetime.utcnow(),
-    )
+    # DB write disabled for now:
+    # upsert_client(
+    #     client_id=payload.clientId,
+    #     consent_accepted=payload.consentAccepted,
+    #     consent_at=datetime.utcnow() if payload.consentAccepted else None,
+    #     client_ip=client_ip,
+    #     origin=origin,
+    #     user_agent=user_agent,
+    #     last_seen_at=datetime.utcnow(),
+    # )
     return {"message": "updated"}
 
 async def notify_subscribers(client_id, gesture):
@@ -151,14 +179,15 @@ async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")
     try:
         if not clientId:
             raise HTTPException(status_code=400, detail="clientId is required")
-        if request is not None:
-            upsert_client(
-                client_id=clientId,
-                origin=request.headers.get("origin") or request.headers.get("referer"),
-                user_agent=request.headers.get("user-agent"),
-                client_ip=request.client.host if request.client else None,
-                last_seen_at=datetime.utcnow(),
-            )
+        # DB write disabled for now:
+        # if request is not None:
+        #     upsert_client(
+        #         client_id=clientId,
+        #         origin=request.headers.get("origin") or request.headers.get("referer"),
+        #         user_agent=request.headers.get("user-agent"),
+        #         client_ip=request.client.host if request.client else None,
+        #         last_seen_at=datetime.utcnow(),
+        #     )
         img_array = np.frombuffer(await frame.read(), np.uint8)
         # img_bytes = await frame.read()
         # print(len(img_bytes))  # Megnézheted, hogy hány byte-ot sikerült beolvasni
@@ -170,7 +199,8 @@ async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")
 
         gesture, img = process_hand_gesture(img)
 
-        print(gesture)
+        # frame-level logging disabled for performance
+        # print(gesture)
 
         # nem statikus gesztust egybol kuldje el
         # if gesture == "swipe right" or gesture == "swipe left":

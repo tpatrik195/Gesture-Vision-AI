@@ -497,23 +497,44 @@ const PresentationPage = () => {
     return (
         <>
             <CursorFollower markerPosition={markerPosition} />
-            <Dialog open={!consentAccepted} maxWidth="sm" fullWidth>
-                <DialogTitle>Kamera használat jóváhagyása</DialogTitle>
+            <Dialog
+                open={!consentAccepted}
+                maxWidth="sm"
+                fullWidth
+                sx={{
+                    "& .MuiPaper-root": {
+                        background: "#ece5db",
+                        color: "#4a2f28",
+                        borderRadius: "14px",
+                        boxShadow: "0 18px 40px rgba(49, 36, 31, 0.25)",
+                        border: "1px solid rgba(74, 47, 40, 0.18)",
+                    },
+                }}
+            >
+                <DialogTitle>{t("consentDialog.title")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body1" sx={{ mb: 2 }}>
-                        A kamera képe titkosítva kerül továbbításra, és kizárólag a gesztusfelismeréshez
-                        használjuk fel. Harmadik félnek nem továbbítjuk, és nem tároljuk.
+                        {t("consentDialog.description")}
                     </Typography>
                     <Typography variant="body2">
-                        A folytatáshoz kérlek fogadd el a feltételeket.
+                        {t("consentDialog.continue")}
                     </Typography>
                 </DialogContent>
                 <DialogActions>
                     <MuiButton
-                        variant="outlined"
+                        variant="contained"
                         onClick={() => navigate("/")}
+                        sx={{
+                            backgroundColor: "#d4d8dc",
+                            color: "#2e3338",
+                            textTransform: "none",
+                            fontWeight: 700,
+                            "&:hover": {
+                                backgroundColor: "#c4c9ce",
+                            },
+                        }}
                     >
-                        Nem fogadom el
+                        {t("consentDialog.decline")}
                     </MuiButton>
                     <MuiButton
                         variant="contained"
@@ -528,8 +549,17 @@ const PresentationPage = () => {
                                 }).catch(() => {});
                             }
                         }}
+                        sx={{
+                            backgroundColor: "#1f5a3a",
+                            color: "#ffffff",
+                            textTransform: "none",
+                            fontWeight: 700,
+                            "&:hover": {
+                                backgroundColor: "#18492f",
+                            },
+                        }}
                     >
-                        Elfogadom
+                        {t("consentDialog.accept")}
                     </MuiButton>
                 </DialogActions>
             </Dialog>

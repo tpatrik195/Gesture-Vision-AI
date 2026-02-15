@@ -41,7 +41,7 @@
     "practicePage": {
         "option1Description": "Nyújtsd ki a jobb kezeden a hüvelyk ujjad és a többit zárd össze.",
         "option2Description": "Nyújtsd ki a jobb kezeden a hüvelyk ujjad és a mutatóujjad, a többit zárd össze.",
-        "option3Description": "Nyújtsd ki a jobb kezeden a mutató-, a középső- és a gyűrűs ujjad, a többit zárd össze.", 
+        "option3Description": "Nyújtsd ki a jobb kezeden a mutató-, a középső- és a gyűrűs ujjad, a többit zárd össze.",
         "option4Description": "Nyújtsd ki a jobb kezeden a hüvelyk ujjadon kívül a többi ujjad.",
         "option5Description": "Nyújtsd ki a jobb kezeden mind az öt ujjad, az ujjak közel egymáshoz.",
         "zoomInDescription": "Csinálj egy nagyítás gesztust mind az öt ujjadat használva a jobb kezeddel. Az ujj hegyei távol egymástól.",
@@ -68,6 +68,15 @@
         "tryItDescription": "Kipróbálnád? Tapasztald meg, milyen egyszerű a gesztusvezérlés!",
         "tryItButton": "Próbáld ki most",
         "question": "Miért érdemes használni?",
-        "benefits": "Az online órák így nemcsak <strong>látványosabbak</strong>, de sokkal <strong>élményszerűbbek</strong> is lesznek - segítve ezzel a <strong>tanárok</strong> munkáját, és növelve a <strong>diákok</strong> figyelmét és aktivitását."
+        "benefits": "Az online órák így nemcsak <strong>látványosabbak</strong>, de sokkal <strong>élményszerűbbek</strong> is lesznek - segítve ezzel a <strong>tanárok</strong> munkáját, és növelve a <strong>diákok</strong> figyelmét és aktivitását.",
+        "footerTagline": "Intelligens, érintésmentes prezentációvezérlés.",
+        "footerCopyright": "© 2026 Gesture Vision AI"
+    },
+    "consentDialog": {
+        "title": "Kamera használat jóváhagyása",
+        "description": "A kamera képe titkosítva kerül továbbításra, és kizárólag a gesztusfelismeréshez használjuk fel. Harmadik félnek nem továbbítjuk, és nem tároljuk.",
+        "continue": "A folytatáshoz kérlek fogadd el a feltételeket.",
+        "decline": "Nem fogadom el",
+        "accept": "Elfogadom"
     }
 }

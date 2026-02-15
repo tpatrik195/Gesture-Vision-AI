@@ -13,6 +13,8 @@ const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
 const GestureDetailPage = () => {
     const webcamRef = useRef(null);
     const frameInterval = useRef(null);
+    const isSendingRef = useRef(false);
+    const frameCanvasRef = useRef(null);
     const [gesture, setGesture] = useState("");
     const [clientId, setClientId] = useState("");
     const [consentAccepted, setConsentAccepted] = useState(
@@ -50,28 +52,30 @@ const stopCameraTracks = () => {
         const existingId = sessionStorage.getItem("clientId");
         if (existingId) {
             setClientId(existingId);
-            fetch(`${SERVER_URL}/register_client`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    clientId: existingId,
-                    consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-                }),
-            }).catch(() => {});
+            // DB write disabled for now:
+            // fetch(`${SERVER_URL}/register_client`, {
+            //     method: "POST",
+            //     headers: { "Content-Type": "application/json" },
+            //     body: JSON.stringify({
+            //         clientId: existingId,
+            //         consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
+            //     }),
+            // }).catch(() => {});
             return;
         }
         const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
             || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         sessionStorage.setItem("clientId", newId);
         setClientId(newId);
-        fetch(`${SERVER_URL}/register_client`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                clientId: newId,
-                consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-            }),
-        }).catch(() => {});
+        // DB write disabled for now:
+        // fetch(`${SERVER_URL}/register_client`, {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify({
+        //         clientId: newId,
+        //         consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
+        //     }),
+        // }).catch(() => {});
     }, []);
 
     useEffect(() => {
@@ -106,32 +110,56 @@ const stopCameraTracks = () => {
 
     const startFrameStreaming = () => {
         frameInterval.current = setInterval(async () => {
-            if (webcamRef.current && webcamRef.current.video.readyState === 4 && clientId) {
+            if (isSendingRef.current) {
+                return;
+            }
+            if (
+                webcamRef.current &&
+                webcamRef.current.video.readyState === 4 &&
+                clientId &&
+                wsRef.current &&
+                wsRef.current.readyState === WebSocket.OPEN
+            ) {
                 const video = webcamRef.current.video;
-                const canvas = document.createElement("canvas");
+                if (!frameCanvasRef.current) {
+                    frameCanvasRef.current = document.createElement("canvas");
+                }
+                const canvas = frameCanvasRef.current;
                 const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    return;
+                }
 
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
+                const targetWidth = 640;
+                const videoWidth = video.videoWidth || targetWidth;
+                const videoHeight = video.videoHeight || 360;
+                const targetHeight = Math.max(1, Math.round((videoHeight / videoWidth) * targetWidth));
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+                isSendingRef.current = true;
                 canvas.toBlob(async (blob) => {
                     if (blob) {
-                        const formData = new FormData();
-                        formData.append("frame", blob, "frame.jpg");
-
                         try {
-                            await fetch(`${SERVER_URL}/process_frame?clientId=${encodeURIComponent(clientId)}`, {
-                                method: "POST",
-                                body: formData,
-                            });
+                            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                                if (wsRef.current.bufferedAmount > 512 * 1024) {
+                                    return;
+                                }
+                                const frameBuffer = await blob.arrayBuffer();
+                                wsRef.current.send(frameBuffer);
+                            }
                         } catch (error) {
-                            console.error("Error sending frame", error);
+                            console.error("Error sending frame via WS", error);
+                        } finally {
+                            isSendingRef.current = false;
                         }
+                    } else {
+                        isSendingRef.current = false;
                     }
-                }, "image/jpeg");
+                }, "image/jpeg", 0.75);
             }
-        }, 100);
+        }, 180);
     };
 
     const stopFrameStreaming = () => {
@@ -139,6 +167,7 @@ const stopCameraTracks = () => {
             clearInterval(frameInterval.current);
             frameInterval.current = null;
         }
+        isSendingRef.current = false;
     };
 
     useEffect(() => {
@@ -174,39 +203,70 @@ const stopCameraTracks = () => {
                 paddingRight: "16px",
             }}
         >
-            <Dialog open={!consentAccepted} maxWidth="sm" fullWidth>
-                <DialogTitle>Kamera használat jóváhagyása</DialogTitle>
+            <Dialog
+                open={!consentAccepted}
+                maxWidth="sm"
+                fullWidth
+                sx={{
+                    "& .MuiPaper-root": {
+                        background: "#ece5db",
+                        color: "#4a2f28",
+                        borderRadius: "14px",
+                        boxShadow: "0 18px 40px rgba(49, 36, 31, 0.25)",
+                        border: "1px solid rgba(74, 47, 40, 0.18)",
+                    },
+                }}
+            >
+                <DialogTitle>{t("consentDialog.title")}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body1" sx={{ mb: 2 }}>
-                        A kamera képe titkosítva kerül továbbításra, és kizárólag a gesztusfelismeréshez
-                        használjuk fel. Harmadik félnek nem továbbítjuk, és nem tároljuk.
+                        {t("consentDialog.description")}
                     </Typography>
                     <Typography variant="body2">
-                        A folytatáshoz kérlek fogadd el a feltételeket.
+                        {t("consentDialog.continue")}
                     </Typography>
                 </DialogContent>
                 <DialogActions>
                     <MuiButton
-                        variant="outlined"
+                        variant="contained"
                         onClick={() => navigate("/practice")}
+                        sx={{
+                            backgroundColor: "#d4d8dc",
+                            color: "#2e3338",
+                            textTransform: "none",
+                            fontWeight: 700,
+                            "&:hover": {
+                                backgroundColor: "#c4c9ce",
+                            },
+                        }}
                     >
-                        Nem fogadom el
+                        {t("consentDialog.decline")}
                     </MuiButton>
                     <MuiButton
                         variant="contained"
                         onClick={() => {
                             sessionStorage.setItem("cameraConsentAccepted", "true");
                             setConsentAccepted(true);
-                            if (clientId) {
-                                fetch(`${SERVER_URL}/client_consent`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ clientId, consentAccepted: true }),
-                                }).catch(() => {});
-                            }
+                            // DB write disabled for now:
+                            // if (clientId) {
+                            //     fetch(`${SERVER_URL}/client_consent`, {
+                            //         method: "POST",
+                            //         headers: { "Content-Type": "application/json" },
+                            //         body: JSON.stringify({ clientId, consentAccepted: true }),
+                            //     }).catch(() => {});
+                            // }
+                        }}
+                        sx={{
+                            backgroundColor: "#1f5a3a",
+                            color: "#ffffff",
+                            textTransform: "none",
+                            fontWeight: 700,
+                            "&:hover": {
+                                backgroundColor: "#18492f",
+                            },
                         }}
                     >
-                        Elfogadom
+                        {t("consentDialog.accept")}
                     </MuiButton>
                 </DialogActions>
             </Dialog>

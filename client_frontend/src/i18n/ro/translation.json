@@ -68,6 +68,15 @@
         "tryItDescription": "Vrei să încerci? Experimentează cât de ușor este controlul prin gesturi!",
         "tryItButton": "Încearcă acum",
         "question": "De ce merită folosit?",
-        "benefits": "Cursurile online devin nu doar <strong>mai vizuale</strong>, ci și <strong>mai captivante</strong> - sprijinind <strong>profesorii</strong> în activitatea lor și sporind <strong>atenția și implicarea elevilor</strong>."
+        "benefits": "Cursurile online devin nu doar <strong>mai vizuale</strong>, ci și <strong>mai captivante</strong> - sprijinind <strong>profesorii</strong> în activitatea lor și sporind <strong>atenția și implicarea elevilor</strong>.",
+        "footerTagline": "Control inteligent al prezentării, fără atingere.",
+        "footerCopyright": "© 2026 Gesture Vision AI"
+    },
+    "consentDialog": {
+        "title": "Aprobarea utilizării camerei",
+        "description": "Imaginea camerei este transmisă criptat și este utilizată exclusiv pentru recunoașterea gesturilor. Nu este transmisă către terți și nu este stocată.",
+        "continue": "Pentru a continua, te rugăm să accepți condițiile.",
+        "decline": "Nu accept",
+        "accept": "Accept"
     }
 }
