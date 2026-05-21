@@ -8,8 +8,8 @@ import { useParams } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
 import { useTheme, useMediaQuery } from "@mui/material";
 
-const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
+const SERVER_URL = window.location.origin;
+const WS_URL = (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
 
 const GestureDetailPage = () => {
     const webcamRef = useRef(null);

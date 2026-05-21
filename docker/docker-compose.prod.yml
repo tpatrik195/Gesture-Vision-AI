@@ -1,33 +1,31 @@
 services:
   db:
     image: postgres:16
+    restart: unless-stopped
     environment:
       - POSTGRES_USER=gesture
       - POSTGRES_PASSWORD=gesture_password
       - POSTGRES_DB=gesture_db
-    ports:
-      - "5432:5432"
     volumes:
       - gesture_db_data:/var/lib/postgresql/data
+
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql+psycopg2://gesture:gesture_password@db:5432/gesture_db
     depends_on:
       - db
-  frontend:
+
+  web:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.frontend
+      dockerfile: docker/Dockerfile.frontend.prod
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WDS_SOCKET_PORT=0
+      - "3000:80"
     depends_on:
       - api
 
