@@ -1,0 +1,36 @@
+{
+  "manifest_version": 2,
+  "name": "Gesture Vision Browser Plugin",
+  "version": "0.1.0",
+  "description": "Receives gesture events from a local bridge and controls meeting apps.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "scripts": ["background/firefox-background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.zoom.us/*"],
+      "js": ["content/zoom.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://meet.google.com/*"],
+      "js": ["content/meet.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_action": {
+    "default_title": "Gesture Vision Plugin"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "gesturevision@local.dev",
+      "strict_min_version": "109.0"
+    }
+  }
+}
