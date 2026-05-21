@@ -11,9 +11,10 @@ export default function PracticeCard({ id, name, image, t }) {
   return (
     <Card
       sx={{
-        width: 360,
-        height: 360,
-        margin: 3,
+        width: '100%',
+        maxWidth: 360,
+        height: { xs: 300, sm: 360 },
+        margin: 0,
         position: 'relative',
         backgroundImage: `url(${image || ''})`,
         backgroundSize: 'cover',

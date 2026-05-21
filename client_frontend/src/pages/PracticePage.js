@@ -14,7 +14,11 @@ const PracticePage = () => {
                 minHeight: '100vh',
                 overflowX: 'hidden',
             }}
-            sx={{ paddingTop: '60px', px: { xs: 2, md: 6 } }}
+            sx={{
+                paddingTop: { xs: '74px', md: '60px' },
+                paddingBottom: { xs: 3, md: 0 },
+                px: { xs: 2, md: 6 }
+            }}
         >
             <Box
                 sx={{
@@ -24,7 +28,7 @@ const PracticePage = () => {
                         sm: 'repeat(2, minmax(0, 1fr))',
                         md: 'repeat(3, minmax(0, 1fr))',
                     },
-                    gap: 4,
+                    gap: { xs: 2, md: 4 },
                     maxWidth: 1200,
                     mx: 'auto',
                 }}

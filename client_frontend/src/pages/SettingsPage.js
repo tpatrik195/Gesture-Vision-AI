@@ -40,11 +40,12 @@ const SettingsPage = () => {
             sx={{
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: { xs: 'flex-start', md: 'center' },
                 minHeight: '100vh',
                 background: 'linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)',
                 color: '#4a2f28',
-                py: { xs: 6, md: 10 },
+                pt: { xs: 9, md: 10 },
+                pb: { xs: 4, md: 10 },
                 px: { xs: 2, md: 6 },
             }}
         >
@@ -55,7 +56,7 @@ const SettingsPage = () => {
                     padding: '24px',
                     borderRadius: '12px',
                     backgroundColor: '#f9f9f9',
-                    mt: -8,
+                    mt: { xs: 0, md: -8 },
                 }}
             >
                 <Typography variant="h5" fontWeight="bold" textAlign="center" marginBottom={2}>

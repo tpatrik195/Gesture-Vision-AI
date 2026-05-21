@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Box } from '@mui/material';
 import './i18n/i18n';
 import MenuBar from './components/Menubar';
+import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import PresentationPage from './pages/PresentationPage';
 import PracticePage from './pages/PracticePage';
@@ -20,12 +22,12 @@ const App = () => {
 
   return (
     <Router>
-      <div>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <MenuBar
           menuItems={menuItems}
           currentPath={window.location.pathname}
         />
-        <div>
+        <Box sx={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/presentation" element={<PresentationPage />} />
@@ -33,8 +35,9 @@ const App = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/practice/:gestureId" element={<GestureDetailPage />} />
           </Routes>
-        </div>
-      </div>
+        </Box>
+        <Footer />
+      </Box>
     </Router>
   );
 };

@@ -57,6 +57,23 @@ const PresentationPage = () => {
 
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const isMobileDevice = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+
+    const lockLandscapeOrientation = async () => {
+        try {
+            if (isMobileDevice && window.screen.orientation && window.screen.orientation.lock) {
+                await window.screen.orientation.lock("landscape");
+            }
+        } catch (e) {}
+    };
+
+    const unlockOrientation = async () => {
+        try {
+            if (window.screen.orientation && window.screen.orientation.unlock) {
+                window.screen.orientation.unlock();
+            }
+        } catch (e) {}
+    };
 
     const stopCameraTracks = () => {
         segmentationActiveRef.current = false;
@@ -473,16 +490,20 @@ const PresentationPage = () => {
         }
     }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, t]);
 
-    const toggleFullScreen = () => {
+    const toggleFullScreen = async () => {
         if (!document.fullscreenElement) {
             if (containerRef.current) {
-                containerRef.current.requestFullscreen().catch(err => {
+                try {
+                    await containerRef.current.requestFullscreen();
+                    await lockLandscapeOrientation();
+                } catch (err) {
                     console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-                });
+                }
             }
             setFullScreenMode(true);
         } else {
-            document.exitFullscreen();
+            await document.exitFullscreen();
+            await unlockOrientation();
             setFullScreenMode(false);
         }
     };
@@ -490,6 +511,9 @@ const PresentationPage = () => {
     useEffect(() => {
         const handleFullScreenChange = () => {
             setFullScreenMode(!!document.fullscreenElement);
+            if (!document.fullscreenElement) {
+                unlockOrientation();
+            }
         };
 
         document.addEventListener("fullscreenchange", handleFullScreenChange);

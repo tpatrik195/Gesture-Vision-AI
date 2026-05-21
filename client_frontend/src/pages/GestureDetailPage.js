@@ -6,6 +6,7 @@ import "../App.css";
 import { getGestures } from "../utils/gestureOptions";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
+import { useTheme, useMediaQuery } from "@mui/material";
 
 const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
@@ -24,6 +25,8 @@ const GestureDetailPage = () => {
     const mediaStreamRef = useRef(null);
     const { t } = useTranslation();
     const location = useLocation();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 const stopCameraTracks = () => {
     const videoEl = webcamRef.current?.video;
     const stream = mediaStreamRef.current || webcamRef.current?.stream || videoEl?.srcObject;
@@ -193,14 +196,15 @@ const stopCameraTracks = () => {
     return (
         <div
             style={{
-                minHeight: "100vh",
+                minHeight: isMobile ? "auto" : "100vh",
                 background: "linear-gradient(135deg, #faf7f2 0%, #f3efe7 100%)",
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "flex-start",
-                paddingTop: "30px",
-                paddingLeft: "16px",
-                paddingRight: "16px",
+                paddingTop: isMobile ? "68px" : "30px",
+                paddingBottom: isMobile ? "0" : "0",
+                paddingLeft: isMobile ? "10px" : "16px",
+                paddingRight: isMobile ? "10px" : "16px",
             }}
         >
             <Dialog
@@ -278,13 +282,16 @@ const stopCameraTracks = () => {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    height: "85vh",
-                    width: "58%",
+                    margin: isMobile ? "0" : "auto",
+                    height: isMobile ? "auto" : "85vh",
+                    minHeight: isMobile ? "auto" : "85vh",
+                    width: isMobile ? "100%" : "58%",
+                    padding: isMobile ? "10px 8px 14px" : "10px",
                     borderRadius: "10px",
                 }}
             >
                 {currentGestureData && (
-                    <p style={{ marginRight: "3px", marginLeft: "3px", marginTop: "15px", fontSize: "16px", fontWeight: "bold", textAlign: "center", }}>
+                    <p style={{ marginRight: "3px", marginLeft: "3px", marginTop: isMobile ? "6px" : "15px", marginBottom: isMobile ? "8px" : "8px", fontSize: isMobile ? "14px" : "16px", fontWeight: "bold", textAlign: "center", }}>
                         {currentGestureData.description}
                     </p>
                 )}
@@ -300,7 +307,7 @@ const stopCameraTracks = () => {
                         style={{ width: "100%", maxWidth: "840px", borderRadius: "10px", transform: "scaleX(-1)" }}
                     />
                 )}
-                <p style={{ marginTop: "10px", fontSize: "20px", fontWeight: "bold" }}>
+                <p style={{ marginTop: isMobile ? "8px" : "10px", fontSize: isMobile ? "16px" : "20px", fontWeight: "bold", textAlign: "center" }}>
                     {t("presentationPage.recognizedGesture")} {gesture}
                 </p>
             </div>
