@@ -28,8 +28,8 @@ services:
     environment:
       - CHOKIDAR_USEPOLLING=true
       - WDS_SOCKET_PORT=0
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_WS_URL=ws://localhost:8000/ws
+      - REACT_APP_API_URL=http://api:8000
+      - REACT_APP_WS_URL=ws://api:8000/ws
     depends_on:
       - api
 

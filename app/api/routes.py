@@ -4,8 +4,8 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, WebSocket, WebSo
 from pydantic import BaseModel
 import cv2
 import numpy as np
-from app.api.process import process_hand_gesture
-from app.db import upsert_client
+from api.process import process_hand_gesture
+from db import upsert_client
 
 import logging
 

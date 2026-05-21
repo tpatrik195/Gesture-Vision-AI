@@ -16,9 +16,13 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
-const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+// const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 
-const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
+// const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
+
+const SERVER_URL = window.location.origin;
+
+const WS_URL = (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
 
 const PresentationPage = () => {
     const webcamRef = useRef(null);
