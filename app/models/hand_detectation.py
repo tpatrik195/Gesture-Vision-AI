@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import mediapipe as mp
 
 from mediapipe.tasks.python.vision import HandLandmarker
@@ -30,8 +29,8 @@ class HandGestureDetector:
         # self.mp_drawing = mp.solutions.drawing_utils
         # self.mp_hands = mp.solutions.hands
 
-        self.prev_left_orientation = None
-        self.prevprev_left_orientation = None
+        self.prev_left_x = None
+        self.prev_left_t = None
 
     def detect_hands(self, frame_rgb):
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
@@ -73,14 +72,15 @@ class HandGestureDetector:
 
     def detect_gesture(self, result, frame):
         if not result.hand_landmarks or not result.handedness:
-            return "None"
+            return "None", 0.0
 
         hand_gesture = "None"
-        left_orientation = "unknown"
-        right_orientation = "unknown"
+        confidence = 0.0
+        now_tick = cv2.getTickCount() / cv2.getTickFrequency()
 
         for hand_landmarks, handedness in zip(result.hand_landmarks, result.handedness):
             hand_label = handedness[0].category_name
+            handedness_score = float(handedness[0].score or 0.0)
             landmarks = hand_landmarks
 
             wrist = landmarks[WRIST]
@@ -90,44 +90,31 @@ class HandGestureDetector:
             def is_pointing():
                 return index_tip.y < index_mcp.y
 
-            def is_hand_upward():
-                return index_tip.y < wrist.y
-
-            def is_hand_leftward():
-                return index_tip.x < wrist.x
-
-            def is_hand_rightward():
-                return index_tip.x > wrist.x
-
-            if is_hand_upward():
-                if hand_label == "Left":
-                    left_orientation = "upward"
-                else:
-                    right_orientation = "upward"
-
-            if is_hand_leftward():
-                if hand_label == "Left":
-                    left_orientation = "leftward"
-                else:
-                    right_orientation = "leftward"
-
-            if is_hand_rightward():
-                if hand_label == "Left":
-                    left_orientation = "rightward"
-                else:
-                    right_orientation = "rightward"
-
             if is_pointing():
                 hand_gesture = "Pointing"
+                confidence = max(confidence, handedness_score)
 
-            # swipe logika
             if hand_label == "Left":
-                if self.prev_left_orientation == "leftward" and left_orientation == "rightward":
-                    hand_gesture = "Swipe Right"
-                elif self.prev_left_orientation == "rightward" and left_orientation == "leftward":
-                    hand_gesture = "Swipe Left"
+                delta_x = 0.0
+                dt = 0.0
+                velocity = 0.0
+                if self.prev_left_x is not None and self.prev_left_t is not None:
+                    delta_x = index_tip.x - self.prev_left_x
+                    dt = now_tick - self.prev_left_t
+                    if dt > 0:
+                        velocity = delta_x / dt
 
-                self.prevprev_left_orientation = self.prev_left_orientation
-                self.prev_left_orientation = left_orientation
+                self.prev_left_x = index_tip.x
+                self.prev_left_t = now_tick
 
-        return hand_gesture
+                min_displacement = 0.08
+                min_velocity = 0.30
+                if abs(delta_x) > min_displacement and abs(velocity) > min_velocity:
+                    if delta_x > 0:
+                        hand_gesture = "Swipe Right"
+                    else:
+                        hand_gesture = "Swipe Left"
+                    gesture_strength = min(1.0, max(abs(delta_x) / 0.2, abs(velocity) / 0.8))
+                    confidence = max(confidence, handedness_score * gesture_strength)
+
+        return hand_gesture, confidence

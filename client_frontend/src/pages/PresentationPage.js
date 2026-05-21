@@ -54,6 +54,8 @@ const PresentationPage = () => {
     const segmentationActiveRef = useRef(false);
     const cameraStartedRef = useRef(false);
     const mediaStreamRef = useRef(null);
+    const maskCanvasRef = useRef(null);
+    const smoothMaskCanvasRef = useRef(null);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -178,17 +180,45 @@ const PresentationPage = () => {
 
         const canvasElement = canvasRef.current;
         const canvasCtx = canvasElement.getContext("2d");
+        if (!maskCanvasRef.current) {
+            maskCanvasRef.current = document.createElement("canvas");
+            smoothMaskCanvasRef.current = document.createElement("canvas");
+        }
+        const maskCanvas = maskCanvasRef.current;
+        const smoothMaskCanvas = smoothMaskCanvasRef.current;
+        maskCanvas.width = videoWidth;
+        maskCanvas.height = videoHeight;
+        smoothMaskCanvas.width = videoWidth;
+        smoothMaskCanvas.height = videoHeight;
+        const maskCtx = maskCanvas.getContext("2d");
+        const smoothMaskCtx = smoothMaskCanvas.getContext("2d");
 
         canvasCtx.save();
         canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
         if (showPersonRef.current) {
+            maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+            maskCtx.drawImage(results.segmentationMask, 0, 0, maskCanvas.width, maskCanvas.height);
+
+            // Soften mask edges for less "cut-out" look.
+            smoothMaskCtx.clearRect(0, 0, smoothMaskCanvas.width, smoothMaskCanvas.height);
+            smoothMaskCtx.filter = "blur(7px)";
+            smoothMaskCtx.drawImage(maskCanvas, 0, 0);
+            smoothMaskCtx.filter = "none";
+
+            // Temporal smoothing by blending previous and current masks.
+            maskCtx.globalAlpha = 0.35;
+            maskCtx.drawImage(smoothMaskCanvas, 0, 0);
+            maskCtx.globalAlpha = 1;
+
             canvasCtx.save();
             canvasCtx.translate(canvasElement.width, 0);
             canvasCtx.scale(-1, 1);
             canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.filter = "contrast(1.06) saturate(1.05)";
             canvasCtx.globalCompositeOperation = 'destination-atop';
-            canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(maskCanvas, 0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.filter = "none";
             canvasCtx.restore();
         }
 

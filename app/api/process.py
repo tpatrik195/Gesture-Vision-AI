@@ -10,11 +10,12 @@ def process_hand_gesture(frame):
     hand_results = hand_gesture_detector.detect_hands(frame_rgb)
 
     if hand_results.hand_landmarks:
-        gesture = hand_gesture_detector.detect_gesture(hand_results, frame)
+        gesture, confidence = hand_gesture_detector.detect_gesture(hand_results, frame)
     else:
         gesture = "no hand detected"
+        confidence = 0.0
 
-    return gesture, frame
+    return gesture, frame, confidence
 
 # def process_segmentation(frame):
 #     segmented_frame = background_segmenter.segment_background(frame)

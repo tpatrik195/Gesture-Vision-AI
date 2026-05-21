@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Optional
+import time
 from fastapi import APIRouter, UploadFile, File, HTTPException, WebSocket, WebSocketDisconnect, Query, Request
 from pydantic import BaseModel
 import cv2
@@ -17,11 +18,12 @@ class ClientRegistration(BaseModel):
 
 websocket_clients = {}
 gesture_buffers = {}
-gesture_buffer = []
-GESTURE_THRESHOLD = 1
-
-last_gesture = None
-last_time_sent = 0
+gesture_state = {}
+GESTURE_THRESHOLD = 4
+MIN_CONFIDENCE = 0.45
+GESTURE_HOLD_SECONDS = 0.25
+GESTURE_COOLDOWN_SECONDS = 1.0
+COMMAND_MODE_WINDOW_SECONDS = 4.0
 
 # latest_segmented_frame = None
 
@@ -74,6 +76,7 @@ async def websocket_endpoint(websocket: WebSocket):
         except Exception:
             pass
     websocket_clients[client_id] = websocket
+    gesture_state.setdefault(client_id, {"command_mode_until": 0.0, "last_sent": {}})
     try:
         while True:
             message = await websocket.receive()
@@ -91,21 +94,16 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             img = cv2.flip(img, 1)
-            gesture, _ = process_hand_gesture(img)
-
-            buffer = gesture_buffers.setdefault(client_id, [])
-            if len(buffer) >= GESTURE_THRESHOLD:
-                buffer.pop(0)
-            buffer.append(gesture)
-
-            if len(buffer) == GESTURE_THRESHOLD and all(g == gesture for g in buffer):
-                await notify_subscribers(client_id, gesture)
-                buffer.clear()
+            gesture, _, confidence = process_hand_gesture(img)
+            event = await maybe_emit_gesture(client_id, gesture, confidence)
+            if event:
+                await notify_subscribers(client_id, event)
     except WebSocketDisconnect:
         pass
     finally:
         websocket_clients.pop(client_id, None)
         gesture_buffers.pop(client_id, None)
+        gesture_state.pop(client_id, None)
 
 
 @router.post("/register_client")
@@ -156,6 +154,48 @@ async def notify_subscribers(client_id, gesture):
     except Exception:
         websocket_clients.pop(client_id, None)
         gesture_buffers.pop(client_id, None)
+        gesture_state.pop(client_id, None)
+
+
+async def maybe_emit_gesture(client_id, gesture, confidence):
+    if not gesture or gesture in {"None", "no hand detected", "Normal"}:
+        return None
+    if confidence < MIN_CONFIDENCE:
+        return None
+
+    now = time.monotonic()
+    state = gesture_state.setdefault(client_id, {"command_mode_until": 0.0, "last_sent": {}})
+    buffer = gesture_buffers.setdefault(client_id, [])
+
+    buffer.append((gesture, now))
+    if len(buffer) > GESTURE_THRESHOLD:
+        buffer.pop(0)
+
+    if len(buffer) < GESTURE_THRESHOLD:
+        return None
+
+    first_gesture, first_ts = buffer[0]
+    if first_gesture != gesture:
+        return None
+    if any(g != gesture for g, _ in buffer):
+        return None
+    if now - first_ts < GESTURE_HOLD_SECONDS:
+        return None
+
+    last_sent_ts = state["last_sent"].get(gesture, 0.0)
+    if now - last_sent_ts < GESTURE_COOLDOWN_SECONDS:
+        return None
+
+    if gesture == "Pointing":
+        state["command_mode_until"] = now + COMMAND_MODE_WINDOW_SECONDS
+        state["last_sent"][gesture] = now
+        return gesture
+
+    if gesture in {"Swipe Left", "Swipe Right"} and now > state["command_mode_until"]:
+        return None
+
+    state["last_sent"][gesture] = now
+    return gesture
 
 # async def notify_subscribers(gesture):
 #     global last_gesture, last_time_sent
@@ -197,7 +237,7 @@ async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")
         img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
         img = cv2.flip(img, 1)
 
-        gesture, img = process_hand_gesture(img)
+        gesture, img, confidence = process_hand_gesture(img)
 
         # frame-level logging disabled for performance
         # print(gesture)
@@ -207,15 +247,9 @@ async def process_frame(frame: UploadFile = File(...), clientId: str = Query("")
         #     await notify_subscribers(gesture)
         
         # else:
-        buffer = gesture_buffers.setdefault(clientId, [])
-        if len(buffer) >= GESTURE_THRESHOLD:
-            buffer.pop(0)
-
-        buffer.append(gesture)
-
-        if len(buffer) == GESTURE_THRESHOLD and all(g == gesture for g in buffer):
-            await notify_subscribers(clientId, gesture)
-            buffer.clear()
+        event = await maybe_emit_gesture(clientId, gesture, confidence)
+        if event:
+            await notify_subscribers(clientId, event)
 
         return {"message": "frame processed"}
 
