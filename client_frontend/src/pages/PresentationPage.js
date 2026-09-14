@@ -20,6 +20,12 @@ import { ACTION, loadSettings } from "../utils/gestureOptions";
 import { SEGMENTATION_ASSET_BASE } from "../config";
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
 
+// Zoom gestures scale the cut-out speaker, as described in the thesis: the
+// presenter can enlarge themselves on the slide.
+const PERSON_SCALE_MIN = 0.6;
+const PERSON_SCALE_MAX = 1.8;
+const PERSON_SCALE_STEP = 0.15;
+
 const PresentationPage = () => {
     const webcamRef = useRef(null);
     const canvasRef = useRef(null);
@@ -50,6 +56,9 @@ const PresentationPage = () => {
     const mediaStreamRef = useRef(null);
     const maskCanvasRef = useRef(null);
     const smoothMaskCanvasRef = useRef(null);
+    const personCanvasRef = useRef(null);
+    const [personScale, setPersonScale] = useState(1);
+    const personScaleRef = useRef(1);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -206,14 +215,38 @@ const PresentationPage = () => {
             maskCtx.drawImage(smoothMaskCanvas, 0, 0);
             maskCtx.globalAlpha = 1;
 
+            // The cut-out is composited on its own canvas first, so the zoom
+            // gesture can scale the speaker without scaling the slide behind.
+            if (!personCanvasRef.current) {
+                personCanvasRef.current = document.createElement("canvas");
+            }
+            const personCanvas = personCanvasRef.current;
+            personCanvas.width = videoWidth;
+            personCanvas.height = videoHeight;
+            const personCtx = personCanvas.getContext("2d");
+
+            personCtx.clearRect(0, 0, personCanvas.width, personCanvas.height);
+            personCtx.save();
+            personCtx.translate(personCanvas.width, 0);
+            personCtx.scale(-1, 1);
+            personCtx.drawImage(results.image, 0, 0, personCanvas.width, personCanvas.height);
+            personCtx.filter = "contrast(1.06) saturate(1.05)";
+            personCtx.globalCompositeOperation = 'destination-atop';
+            personCtx.drawImage(maskCanvas, 0, 0, personCanvas.width, personCanvas.height);
+            personCtx.filter = "none";
+            personCtx.restore();
+
+            const scale = personScaleRef.current;
+            const drawWidth = canvasElement.width * scale;
+            const drawHeight = canvasElement.height * scale;
             canvasCtx.save();
-            canvasCtx.translate(canvasElement.width, 0);
-            canvasCtx.scale(-1, 1);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.filter = "contrast(1.06) saturate(1.05)";
-            canvasCtx.globalCompositeOperation = 'destination-atop';
-            canvasCtx.drawImage(maskCanvas, 0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.filter = "none";
+            canvasCtx.drawImage(
+                personCanvas,
+                (canvasElement.width - drawWidth) / 2,
+                canvasElement.height - drawHeight,
+                drawWidth,
+                drawHeight
+            );
             canvasCtx.restore();
         }
 
@@ -229,6 +262,11 @@ const PresentationPage = () => {
     useEffect(() => {
         showPersonRef.current = showPerson;
     }, [showPerson]);
+
+    // The render loop runs outside React, so it reads the scale from a ref.
+    useEffect(() => {
+        personScaleRef.current = personScale;
+    }, [personScale]);
 
     useEffect(() => {
         return () => {
@@ -430,6 +468,12 @@ const PresentationPage = () => {
                 break;
             case ACTION.HIDE_PERSON:
                 setShowPerson(false);
+                break;
+            case ACTION.ZOOM_IN:
+                setPersonScale((prev) => Math.min(PERSON_SCALE_MAX, prev + PERSON_SCALE_STEP));
+                break;
+            case ACTION.ZOOM_OUT:
+                setPersonScale((prev) => Math.max(PERSON_SCALE_MIN, prev - PERSON_SCALE_STEP));
                 break;
             case ACTION.FULLSCREEN:
                 if (!document.fullscreenElement) {

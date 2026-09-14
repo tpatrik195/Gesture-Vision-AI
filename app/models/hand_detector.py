@@ -20,6 +20,7 @@ from mediapipe.tasks.python.vision import (
 from app.config import settings
 
 WRIST = 0
+THUMB_MCP = 2
 THUMB_TIP = 4
 INDEX_FINGER_MCP = 5
 INDEX_FINGER_PIP = 6
@@ -39,6 +40,7 @@ GESTURE_SWIPE_LEFT = "Swipe Left"
 GESTURE_SWIPE_RIGHT = "Swipe Right"
 GESTURE_ZOOM_IN = "Zoom In"
 GESTURE_ZOOM_OUT = "Zoom Out"
+OPTION_GESTURES = tuple(f"Option {n}" for n in range(1, 6))
 
 SUPPORTED_GESTURES = (
     GESTURE_POINTING,
@@ -46,7 +48,7 @@ SUPPORTED_GESTURES = (
     GESTURE_SWIPE_RIGHT,
     GESTURE_ZOOM_IN,
     GESTURE_ZOOM_OUT,
-)
+) + OPTION_GESTURES
 
 
 @dataclass
@@ -155,24 +157,84 @@ def _angle(p1, p2, vertex) -> float:
     return math.degrees(math.acos(max(-1.0, min(1.0, cos_theta))))
 
 
-def _finger_extended(landmarks, tip_id: int, pip_id: int) -> bool:
-    return landmarks[tip_id].y < landmarks[pip_id].y
+def _hand_axis(landmarks) -> tuple[float, float]:
+    """Unit vector pointing from the wrist towards the knuckles.
+
+    Everything below is measured along this axis rather than along the image
+    axes, so finger extension is judged the same way whether the hand is held
+    upright or turned sideways.
+    """
+    wrist = landmarks[WRIST]
+    middle_mcp = landmarks[MIDDLE_FINGER_MCP]
+    dx = middle_mcp.x - wrist.x
+    dy = middle_mcp.y - wrist.y
+    magnitude = math.hypot(dx, dy)
+    if magnitude < 1e-6:
+        return 0.0, -1.0
+    return dx / magnitude, dy / magnitude
 
 
-def _is_pointing(landmarks) -> bool:
-    index_tip = landmarks[INDEX_FINGER_TIP]
-    index_pip = landmarks[INDEX_FINGER_PIP]
-    index_mcp = landmarks[INDEX_FINGER_MCP]
-    if not (index_tip.y < index_pip.y < index_mcp.y):
+def _project(landmark, origin, axis: tuple[float, float]) -> float:
+    return (landmark.x - origin.x) * axis[0] + (landmark.y - origin.y) * axis[1]
+
+
+def _finger_extended(landmarks, tip_id: int, pip_id: int, axis=None) -> bool:
+    if axis is None:
+        axis = _hand_axis(landmarks)
+    wrist = landmarks[WRIST]
+    return _project(landmarks[tip_id], wrist, axis) > _project(landmarks[pip_id], wrist, axis)
+
+
+FINGERS = (
+    (INDEX_FINGER_TIP, INDEX_FINGER_PIP),
+    (MIDDLE_FINGER_TIP, MIDDLE_FINGER_PIP),
+    (RING_FINGER_TIP, RING_FINGER_PIP),
+    (PINKY_TIP, PINKY_PIP),
+)
+
+
+def extended_fingers(landmarks, axis=None) -> list[bool]:
+    if axis is None:
+        axis = _hand_axis(landmarks)
+    return [_finger_extended(landmarks, tip, pip, axis) for tip, pip in FINGERS]
+
+
+def extended_finger_count(landmarks, axis=None) -> int:
+    return sum(extended_fingers(landmarks, axis))
+
+
+def _thumb_extended(landmarks, axis=None) -> bool:
+    """The thumb leaves the palm sideways, so it is measured perpendicular
+    to the hand axis rather than along it."""
+    if axis is None:
+        axis = _hand_axis(landmarks)
+    perpendicular = (-axis[1], axis[0])
+    wrist = landmarks[WRIST]
+    tip = abs(_project(landmarks[THUMB_TIP], wrist, perpendicular))
+    mcp = abs(_project(landmarks[THUMB_MCP], wrist, perpendicular))
+    return tip > mcp * 1.4
+
+
+def hand_orientation(landmarks, axis=None) -> str:
+    """'up' when the fingers point upwards, otherwise 'side'."""
+    if axis is None:
+        axis = _hand_axis(landmarks)
+    # Image y grows downwards, so an upward-pointing hand has negative dy.
+    return "up" if axis[1] <= -0.55 else "side"
+
+
+def _is_pointing(landmarks, axis=None) -> bool:
+    if axis is None:
+        axis = _hand_axis(landmarks)
+    wrist = landmarks[WRIST]
+    index_extended = (
+        _project(landmarks[INDEX_FINGER_TIP], wrist, axis)
+        > _project(landmarks[INDEX_FINGER_PIP], wrist, axis)
+        > _project(landmarks[INDEX_FINGER_MCP], wrist, axis)
+    )
+    if not index_extended:
         return False
-    for tip_id, pip_id in (
-        (MIDDLE_FINGER_TIP, MIDDLE_FINGER_PIP),
-        (RING_FINGER_TIP, RING_FINGER_PIP),
-        (PINKY_TIP, PINKY_PIP),
-    ):
-        if _finger_extended(landmarks, tip_id, pip_id):
-            return False
-    return True
+    return not any(extended_fingers(landmarks, axis)[1:])
 
 
 def _hand_scale(landmarks) -> float:
@@ -193,29 +255,42 @@ def finger_angles(landmarks) -> dict:
     }
 
 
-def extended_finger_count(landmarks) -> int:
-    return sum(
-        1
-        for tip_id, pip_id in (
-            (INDEX_FINGER_TIP, INDEX_FINGER_PIP),
-            (MIDDLE_FINGER_TIP, MIDDLE_FINGER_PIP),
-            (RING_FINGER_TIP, RING_FINGER_PIP),
-            (PINKY_TIP, PINKY_PIP),
-        )
-        if _finger_extended(landmarks, tip_id, pip_id)
-    )
+def _classify_counting(landmarks, axis) -> tuple[str, float]:
+    """Option 1-5 from the number of raised fingers.
 
-
-def _classify_static(landmarks) -> tuple[str, float]:
-    """Static hand poses from inter-finger angles, gated on finger extension.
-
-    Requiring the fingers to actually be extended stops a relaxed or half-closed
-    hand from drifting into a zoom gesture, which was the main source of false
-    positives with angle thresholds alone.
+    Only recognised with the hand turned sideways, which is what separates
+    counting from the upright zoom poses: an open upright palm would otherwise
+    be indistinguishable from "Option 4".
     """
+    fingers = extended_fingers(landmarks, axis)
+    count = sum(fingers) + (1 if _thumb_extended(landmarks, axis) else 0)
+    if not 1 <= count <= 5:
+        return GESTURE_NONE, 0.0
+
+    # Raised fingers should be contiguous from the index; a scattered pattern is
+    # usually a half-formed pose rather than a deliberate count.
+    raised = [i for i, up in enumerate(fingers) if up]
+    if raised and raised != list(range(len(raised))):
+        return GESTURE_NONE, 0.0
+
+    return f"Option {count}", 0.75
+
+
+def _classify_static(landmarks, axis=None) -> tuple[str, float]:
+    """Static hand poses.
+
+    Upright hand: zoom gestures from inter-finger angles, gated on the fingers
+    actually being extended - the angles alone let a relaxed hand drift into a
+    zoom. Sideways hand: finger counting.
+    """
+    if axis is None:
+        axis = _hand_axis(landmarks)
+
+    if hand_orientation(landmarks, axis) == "side":
+        return _classify_counting(landmarks, axis)
+
     angles = finger_angles(landmarks)
-    extended = extended_finger_count(landmarks)
-    if extended < 3:
+    if extended_finger_count(landmarks, axis) < 3:
         return GESTURE_NONE, 0.0
 
     closed = max(angles["thumb_index"], angles["index_middle"], angles["middle_ring"], angles["ring_pinky"])
@@ -294,6 +369,7 @@ class HandGestureDetector:
 
         for landmarks, handedness in zip(result.hand_landmarks, result.handedness):
             hand_score = float(handedness[0].score or 0.0)
+            axis = _hand_axis(landmarks)
 
             swipe_gesture, strength = self._swipe.update(
                 landmarks[MIDDLE_FINGER_MCP].x, _hand_scale(landmarks), now
@@ -304,7 +380,7 @@ class HandGestureDetector:
                     gesture, confidence = swipe_gesture, candidate_confidence
                 continue
 
-            if _is_pointing(landmarks):
+            if _is_pointing(landmarks, axis):
                 tip = landmarks[INDEX_FINGER_TIP]
                 x, y = self._pointer.update(
                     min(max(tip.x, 0.0), 1.0), min(max(tip.y, 0.0), 1.0)
@@ -314,7 +390,7 @@ class HandGestureDetector:
                     gesture, confidence = GESTURE_POINTING, hand_score
                 continue
 
-            static_gesture, static_confidence = _classify_static(landmarks)
+            static_gesture, static_confidence = _classify_static(landmarks, axis)
             if static_gesture != GESTURE_NONE:
                 candidate_confidence = hand_score * static_confidence
                 if candidate_confidence > confidence:

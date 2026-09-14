@@ -80,10 +80,19 @@ Törölve: `app/fps.py`, `app/api/process.py`, `app/models/pose_detectation.py`,
 
 Megtartva a fejlesztő kérésére: `app/models/segmentation.py`, az `upsert_client` (immár ténylegesen használva), és a `browser_extension/`.
 
-## 9. Ami még hátravan
+## 9. Gesztuskészlet bővítése
 
-1. A `browser_extension` bekötése a valós API-hoz (jelenleg egy helyi stub bridge-et pollingol).
-2. Az `Option 1–5` gesztusok visszaépítése az új detektorba.
-3. A `Zoom In` / `Zoom Out` vizuális hatásának bekötése a prezentációs felületen.
-4. Küszöbkalibráció valós kézzel, a `gesture_probe` eszközzel.
-5. Terheléses mérés több egyidejű klienssel.
+**Orientációfüggetlen ujjérzékelés.** A korábbi logika a kép y- és x-tengelyéhez mérte az ujjak kinyújtottságát, ami csak egy adott kéztartásnál működött megbízhatóan. Az új megoldás a csukló→ujjtő vektort veszi a kéz saját tengelyének, és arra vetíti az ízületeket — így ugyanaz a döntés születik felfelé tartott és oldalra fordított kéznél is.
+
+**`Option 1–5` visszaépítve.** A számlálás a kinyújtott ujjak számából áll elő, és csak oldalra fordított kéznél aktív. Ez választja el a számlálást a függőleges zoom-pózoktól: egy felfelé tartott nyitott tenyér egyébként megkülönböztethetetlen lenne az „Option 4"-től. A rendszer emellett megköveteli, hogy a felemelt ujjak a mutatóujjtól kezdve összefüggőek legyenek — a szórt minta jellemzően félbehagyott kéztartás, nem szándékos számlálás.
+
+**Zoom a személyre.** A `Zoom In` / `Zoom Out` a kivágott előadó méretét állítja a dián (0,6–1,8× között), ahogy a dolgozat leírja. A kompozitálás külön vászonra került, hogy a nagyítás csak az előadót érintse, a hátteret és a diát ne. Alapértelmezetten 1,0× — a megjelenés változatlan, amíg a felhasználó nem zoomol.
+
+A felület a backend gesztuslistájából épül fel, így az új gesztusok külön frontend-módosítás nélkül jelentek meg a gyakorló és a beállítások oldalon.
+
+## 10. Ami még hátravan
+
+1. **Küszöbkalibráció valós kézzel** a `tools/gesture_probe.py` eszközzel — a jelenlegi értékek irodalmi/megfigyelési alapon vannak beállítva, nem a végleges felhasználó kezére.
+2. A `browser_extension` bekötése a valós API-hoz (jelenleg egy helyi stub bridge-et pollingol).
+3. Terheléses mérés több egyidejű klienssel.
+4. Éles telepítés: domain, TLS, `ALLOWED_ORIGINS` szűkítése.
