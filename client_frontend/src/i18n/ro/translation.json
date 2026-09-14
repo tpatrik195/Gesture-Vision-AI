@@ -1,82 +1,91 @@
 {
-    "menuBar": {
-        "home": "Acasă",
-        "presentation": "Prezentare",
-        "practice": "Exercițiu",
-        "settings": "Setări"
-    },
-    "presentationPage": {
-        "uploadFile": "Încarcă fișier",
-        "gestureDetection": "Detectare gesturi",
-        "stop": "Oprește",
-        "showPerson": "Afișează persoana",
-        "hidePerson": "Ascunde persoana",
-        "recognizedGesture": "Gestul recunoscut: ",
-        "fullScreen": "Ecran complet",
-        "exitFullScreen": "Ieșire"
-    },
-    "settingsPage": {
-        "title": "Setări Gesturi",
-        "subtitle": "Configurează ce funcție declanșează fiecare gest",
-        "option1": "Opțiunea 1",
-        "option2": "Opțiunea 2",
-        "option3": "Opțiunea 3",
-        "option4": "Opțiunea 4",
-        "option5": "Opțiunea 5",
-        "zoomIn": "Mărire",
-        "zoomOut": "Micșorare",
-        "swipeLeft": "Derulare spre stânga",
-        "swipeRight": "Derulare spre dreapta",
-        "chooseOption": "Alege opțiunea",
-        "exitFullScreen": "Ieșire ecran complet",
-        "laserPointer": "Pointer laser",
-        "debugMode": "Mod de Debug",
-        "gesture": "Gest",
-        "function": "Funcție",
-        "saveButton": "Salvează setările"
-    },
-    "practiceCard": {
-        "tryGesture": "Încearcă acest gest"
-    },
-    "practicePage": {
-        "option1Description": "Întinde degetul mare de la mâna dreaptă și ține celelalte degete apropiate.",
-        "option2Description": "Întinde degetul mare și arătătorul de la mâna dreaptă, ține celelalte degete apropiate.",
-        "option3Description": "Întinde degetul arătător, mijlociu și inelar de la mâna dreaptă, ține celelalte degete apropiate.",
-        "option4Description": "Întinde toate degetele de la mâna dreaptă, cu excepția degetului mare.",
-        "option5Description": "Întinde toate cele cinci degete de la mâna dreaptă, păstrându-le apropiate.",
-        "zoomInDescription": "Fă un gest de mărire folosind toate cele cinci degete ale mâinii drepte. Vârfurile degetelor trebuie să fie depărtate.",
-        "zoomOutDescription": "Strânge toate cele cinci degete ale mâinii drepte. Vârfurile degetelor trebuie să fie foarte apropiate.",
-        "swipeLeftDescription": "Fă un gest de glisare spre stânga cu mâna stângă, ca și cum ai saluta spre stânga.",
-        "swipeRightDescription": "Fă un gest de glisare spre dreapta cu mâna stângă, ca și cum ai saluta spre dreapta.",
-        "laserPointerDescription": "Folosește degetul arătător de la mâna dreaptă pentru a indica ceva pe ecran."
-    },
-    "homePage": {
-        "subtitle": "Viitorul educației controlat prin gesturi",
-        "subsubtitle": "O nouă eră în educația online: controlează totul fără atingere, doar cu mâinile tale!",
-        "functions": "Funcționalități cheie",
-        "func1Title": "Navigare prin gesturi",
-        "func1Description": "Schimbă diapozitivele cu o simplă mișcare a mâinii spre stânga sau dreapta.",
-        "func2Title": "Eliminare de fundal în timp real",
-        "func2Description": "Avatarul tău din cameră este integrat în prezentare în timp real.",
-        "func3Title": "Mărire cu gesturi",
-        "func3Description": "Evidențiază-te pe ecran atunci când transmiți un mesaj important.",
-        "func4Title": "Control personalizabil",
-        "func4Description": "Tu decizi ce gest execută fiecare funcție - totul este configurabil.",
-        "func5Title": "Mod ecran complet & Debug",
-        "func5Description": "Prezintă în modul fullscreen sau dezvoltă cu feedback detaliat al recunoașterii gesturilor.",
-        "tryItTitle": "Încearcă",
-        "tryItDescription": "Vrei să încerci? Experimentează cât de ușor este controlul prin gesturi!",
-        "tryItButton": "Încearcă acum",
-        "question": "De ce merită folosit?",
-        "benefits": "Cursurile online devin nu doar <strong>mai vizuale</strong>, ci și <strong>mai captivante</strong> - sprijinind <strong>profesorii</strong> în activitatea lor și sporind <strong>atenția și implicarea elevilor</strong>.",
-        "footerTagline": "Control inteligent al prezentării, fără atingere.",
-        "footerCopyright": "© 2026 Gesture Vision AI"
-    },
-    "consentDialog": {
-        "title": "Aprobarea utilizării camerei",
-        "description": "Imaginea camerei este transmisă criptat și este utilizată exclusiv pentru recunoașterea gesturilor. Nu este transmisă către terți și nu este stocată.",
-        "continue": "Pentru a continua, te rugăm să accepți condițiile.",
-        "decline": "Nu accept",
-        "accept": "Accept"
-    }
+  "menuBar": {
+    "home": "Acasă",
+    "presentation": "Prezentare",
+    "practice": "Exercițiu",
+    "settings": "Setări"
+  },
+  "presentationPage": {
+    "uploadFile": "Încarcă fișier",
+    "gestureDetection": "Detectare gesturi",
+    "stop": "Oprește",
+    "showPerson": "Afișează persoana",
+    "hidePerson": "Ascunde persoana",
+    "recognizedGesture": "Gestul recunoscut: ",
+    "fullScreen": "Ecran complet",
+    "exitFullScreen": "Ieșire"
+  },
+  "settingsPage": {
+    "title": "Setări Gesturi",
+    "subtitle": "Configurează ce funcție declanșează fiecare gest",
+    "option1": "Opțiunea 1",
+    "option2": "Opțiunea 2",
+    "option3": "Opțiunea 3",
+    "option4": "Opțiunea 4",
+    "option5": "Opțiunea 5",
+    "zoomIn": "Mărire",
+    "zoomOut": "Micșorare",
+    "swipeLeft": "Derulare spre stânga",
+    "swipeRight": "Derulare spre dreapta",
+    "chooseOption": "Alege opțiunea",
+    "exitFullScreen": "Ieșire ecran complet",
+    "laserPointer": "Pointer laser",
+    "debugMode": "Mod de Debug",
+    "gesture": "Gest",
+    "function": "Funcție",
+    "saveButton": "Salvează setările"
+  },
+  "practiceCard": {
+    "tryGesture": "Încearcă acest gest"
+  },
+  "practicePage": {
+    "option1Description": "Întinde degetul mare de la mâna dreaptă și ține celelalte degete apropiate.",
+    "option2Description": "Întinde degetul mare și arătătorul de la mâna dreaptă, ține celelalte degete apropiate.",
+    "option3Description": "Întinde degetul arătător, mijlociu și inelar de la mâna dreaptă, ține celelalte degete apropiate.",
+    "option4Description": "Întinde toate degetele de la mâna dreaptă, cu excepția degetului mare.",
+    "option5Description": "Întinde toate cele cinci degete de la mâna dreaptă, păstrându-le apropiate.",
+    "zoomInDescription": "Fă un gest de mărire folosind toate cele cinci degete ale mâinii drepte. Vârfurile degetelor trebuie să fie depărtate.",
+    "zoomOutDescription": "Strânge toate cele cinci degete ale mâinii drepte. Vârfurile degetelor trebuie să fie foarte apropiate.",
+    "swipeLeftDescription": "Fă un gest de glisare spre stânga cu mâna stângă, ca și cum ai saluta spre stânga.",
+    "swipeRightDescription": "Fă un gest de glisare spre dreapta cu mâna stângă, ca și cum ai saluta spre dreapta.",
+    "laserPointerDescription": "Folosește degetul arătător de la mâna dreaptă pentru a indica ceva pe ecran."
+  },
+  "homePage": {
+    "subtitle": "Viitorul educației controlat prin gesturi",
+    "subsubtitle": "O nouă eră în educația online: controlează totul fără atingere, doar cu mâinile tale!",
+    "functions": "Funcționalități cheie",
+    "func1Title": "Navigare prin gesturi",
+    "func1Description": "Schimbă diapozitivele cu o simplă mișcare a mâinii spre stânga sau dreapta.",
+    "func2Title": "Eliminare de fundal în timp real",
+    "func2Description": "Avatarul tău din cameră este integrat în prezentare în timp real.",
+    "func3Title": "Mărire cu gesturi",
+    "func3Description": "Evidențiază-te pe ecran atunci când transmiți un mesaj important.",
+    "func4Title": "Control personalizabil",
+    "func4Description": "Tu decizi ce gest execută fiecare funcție - totul este configurabil.",
+    "func5Title": "Mod ecran complet & Debug",
+    "func5Description": "Prezintă în modul fullscreen sau dezvoltă cu feedback detaliat al recunoașterii gesturilor.",
+    "tryItTitle": "Încearcă",
+    "tryItDescription": "Vrei să încerci? Experimentează cât de ușor este controlul prin gesturi!",
+    "tryItButton": "Încearcă acum",
+    "question": "De ce merită folosit?",
+    "benefits": "Cursurile online devin nu doar <strong>mai vizuale</strong>, ci și <strong>mai captivante</strong> - sprijinind <strong>profesorii</strong> în activitatea lor și sporind <strong>atenția și implicarea elevilor</strong>.",
+    "footerTagline": "Control inteligent al prezentării, fără atingere.",
+    "footerCopyright": "© 2026 Gesture Vision AI"
+  },
+  "consentDialog": {
+    "title": "Aprobarea utilizării camerei",
+    "description": "Imaginea camerei este transmisă criptat și este utilizată exclusiv pentru recunoașterea gesturilor. Nu este transmisă către terți și nu este stocată.",
+    "continue": "Pentru a continua, te rugăm să accepți condițiile.",
+    "decline": "Nu accept",
+    "accept": "Accept"
+  },
+  "cameraError": {
+    "permissionDenied": "Accesul la cameră este blocat. Permite-l din bara de adrese, apoi reîncarcă pagina.",
+    "deviceBusy": "Camera este folosită de altă aplicație. Închide-o și încearcă din nou.",
+    "unavailable": "Nu există cameră disponibilă pe acest dispozitiv."
+  },
+  "connection": {
+    "reconnecting": "Reconectare la server...",
+    "serverBusy": "Serverul este ocupat, încearcă din nou în câteva minute."
+  }
 }

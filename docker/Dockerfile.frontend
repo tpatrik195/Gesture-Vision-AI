@@ -1,10 +1,17 @@
 FROM node:18-alpine
+
 WORKDIR /app/client_frontend
-COPY client_frontend/package.json client_frontend/package-lock.json /app/client_frontend/
-RUN npm install
-COPY client_frontend /app/client_frontend
-ENV HOST=0.0.0.0
-ENV PORT=3000
-ENV DANGEROUSLY_DISABLE_HOST_CHECK=true
+
+COPY client_frontend/package.json client_frontend/package-lock.json ./
+RUN npm ci
+
+COPY client_frontend ./
+
+ENV HOST=0.0.0.0 \
+    PORT=3000 \
+    DEV_API_TARGET=http://api:8000 \
+    WATCHPACK_POLLING=true
+
 EXPOSE 3000
-CMD ["npm","start"]
+
+CMD ["npm", "start"]

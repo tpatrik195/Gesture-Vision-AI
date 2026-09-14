@@ -1,35 +1,64 @@
+# Development stack: http://localhost:3000 serves the app, the API and the
+# WebSocket through one origin, so the browser behaves exactly as in production.
+name: gesture-vision-dev
+
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=gesture
-      - POSTGRES_PASSWORD=gesture_password
-      - POSTGRES_DB=gesture_db
+      POSTGRES_USER: ${POSTGRES_USER:-gesture}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-gesture_db}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - gesture_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gesture}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      - DATABASE_URL=postgresql+psycopg2://gesture:gesture_password@db:5432/gesture_db
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-gesture}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gesture_db}
+    volumes:
+      - ../app:/srv/app:ro
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/srv/app"]
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
   frontend:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
-    ports:
-      - "3000:3000"
+    restart: unless-stopped
     environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WDS_SOCKET_PORT=0
+      CHOKIDAR_USEPOLLING: "true"
+      WDS_SOCKET_PATH: /ws-hmr
+      WDS_SOCKET_PORT: "0"
+    volumes:
+      - ../client_frontend/src:/app/client_frontend/src:ro
+      - ../client_frontend/public:/app/client_frontend/public:ro
+
+  web:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - api
+      - frontend
 
 volumes:
   gesture_db_data:

@@ -1,38 +1,33 @@
 import { Box, Divider, Typography, Paper, Select, MenuItem, FormControl, InputLabel, Switch, FormControlLabel } from "@mui/material";
 import { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
-import { getGestures, getOptions, defaultSettings } from "../utils/gestureOptions";
+import { getGestures, getActions, loadSettings, saveSettings } from "../utils/gestureOptions";
 
 const SettingsPage = () => {
     const { t } = useTranslation();
 
-    const Gestures = getGestures(t).slice(0, 9);
-    const Options = getOptions(t);
+    const Gestures = getGestures(t);
+    const Options = getActions(t);
 
     const [settings, setSettings] = useState({});
 
     useEffect(() => {
-        const storedSettings = sessionStorage.getItem("gestureSettings");
-        if (storedSettings) {
-            setSettings(JSON.parse(storedSettings));
-        } else {
-            setSettings(defaultSettings);
-            sessionStorage.setItem("gestureSettings", JSON.stringify(defaultSettings));
-        }
+        setSettings(loadSettings());
     }, []);
 
-    const handleChange = (gesture, action) => {
-        const newSettings = { ...settings, [gesture.name]: action };
+    const persist = (newSettings) => {
         setSettings(newSettings);
-        sessionStorage.setItem("gestureSettings", JSON.stringify(newSettings));
+        saveSettings(newSettings);
+    };
+
+    const handleChange = (gesture, action) => {
+        persist({ ...settings, [gesture.key]: action });
     };
 
     const selectedOptions = Object.values(settings);
 
     const handleDebugToggle = (event) => {
-        const newSettings = { ...settings, debugMode: event.target.checked };
-        setSettings(newSettings);
-        sessionStorage.setItem("gestureSettings", JSON.stringify(newSettings));
+        persist({ ...settings, debugMode: event.target.checked });
     };
 
     return (
@@ -81,7 +76,7 @@ const SettingsPage = () => {
                                 </InputLabel>
                                 <Select
                                     labelId={`${gesture.name}-label`}
-                                    value={settings[gesture.name] || ""}
+                                    value={settings[gesture.key] || ""}
                                     onChange={(e) => handleChange(gesture, e.target.value)}
                                     label={t('settingsPage.chooseOption')}
                                     sx={{
@@ -105,10 +100,10 @@ const SettingsPage = () => {
                                 >
                                     <MenuItem value="">{t('settingsPage.chooseOption')}</MenuItem>
                                     {Options
-                                        .filter((option) => !selectedOptions.includes(option) || settings[gesture.name] === option)
-                                        .map((option) => (
-                                            <MenuItem key={option} value={option}>
-                                                {option}
+                                        .filter(({ action }) => !selectedOptions.includes(action) || settings[gesture.key] === action)
+                                        .map(({ action, label }) => (
+                                            <MenuItem key={action} value={action}>
+                                                {label}
                                             </MenuItem>
                                         ))}
 

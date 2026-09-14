@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { SelfieSegmentation } from "@mediapipe/selfie_segmentation";
 import * as cam from "@mediapipe/camera_utils";
@@ -14,15 +14,11 @@ import { useNavigate } from "react-router-dom";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import { GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
+import useGestureStream, { STATUS } from "../hooks/useGestureStream";
+import { submitConsent } from "../api/client";
+import { ACTION, loadSettings } from "../utils/gestureOptions";
+import { SEGMENTATION_ASSET_BASE } from "../config";
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
-
-// const SERVER_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
-
-// const WS_URL = process.env.REACT_APP_WS_URL || "ws://127.0.0.1:8000/ws";
-
-const SERVER_URL = window.location.origin;
-
-const WS_URL = (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
 
 const PresentationPage = () => {
     const webcamRef = useRef(null);
@@ -40,9 +36,8 @@ const PresentationPage = () => {
     const [showPerson, setShowPerson] = useState(true);
     const [subscribed, setSubscribed] = useState(false);
     const [fullScreenMode, setFullScreenMode] = useState(false);
-    const frameInterval = useRef(null);
     const [markerPosition, setMarkerPosition] = useState(null);
-    const [clientId, setClientId] = useState("");
+    const [cameraError, setCameraError] = useState(null);
     const [consentAccepted, setConsentAccepted] = useState(
         sessionStorage.getItem("cameraConsentAccepted") === "true"
     );
@@ -50,7 +45,6 @@ const PresentationPage = () => {
     const showPersonRef = useRef(showPerson);
     const cameraRef = useRef(null);
     const segmentationRef = useRef(null);
-    const wsRef = useRef(null);
     const segmentationActiveRef = useRef(false);
     const cameraStartedRef = useRef(false);
     const mediaStreamRef = useRef(null);
@@ -61,21 +55,21 @@ const PresentationPage = () => {
     const navigate = useNavigate();
     const isMobileDevice = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
 
-    const lockLandscapeOrientation = async () => {
+    const lockLandscapeOrientation = useCallback(async () => {
         try {
             if (isMobileDevice && window.screen.orientation && window.screen.orientation.lock) {
                 await window.screen.orientation.lock("landscape");
             }
         } catch (e) {}
-    };
+    }, [isMobileDevice]);
 
-    const unlockOrientation = async () => {
+    const unlockOrientation = useCallback(async () => {
         try {
             if (window.screen.orientation && window.screen.orientation.unlock) {
                 window.screen.orientation.unlock();
             }
         } catch (e) {}
-    };
+    }, []);
 
     const stopCameraTracks = () => {
         segmentationActiveRef.current = false;
@@ -108,7 +102,7 @@ const PresentationPage = () => {
         return () => window.removeEventListener("beforeunload", handleUnload);
     }, []);
 
-    const startCameraIfReady = () => {
+    const startCameraIfReady = useCallback(() => {
         if (!consentAccepted || !videoReady) {
             return;
         }
@@ -134,35 +128,36 @@ const PresentationPage = () => {
         cameraRef.current = camera;
         cameraStartedRef.current = true;
         camera.start();
-    };
+    }, [consentAccepted, videoReady]);
 
-    useEffect(() => {
-        const existingId = sessionStorage.getItem("clientId");
-        if (existingId) {
-            setClientId(existingId);
-            fetch(`${SERVER_URL}/register_client`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    clientId: existingId,
-                    consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-                }),
-            }).catch(() => {});
+    const handlePointer = useCallback((point) => {
+        if (!point) {
+            setMarkerPosition(null);
             return;
         }
-        const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
-            || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        sessionStorage.setItem("clientId", newId);
-        setClientId(newId);
-        fetch(`${SERVER_URL}/register_client`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                clientId: newId,
-                consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-            }),
-        }).catch(() => {});
+        const canvasEl = canvasRef.current;
+        if (!canvasEl) {
+            return;
+        }
+        // The detector reports normalised coordinates, so the overlay lines up
+        // regardless of canvas size, device pixel ratio or fullscreen state.
+        const rect = canvasEl.getBoundingClientRect();
+        setMarkerPosition({
+            x: rect.left + point.x * rect.width,
+            y: rect.top + point.y * rect.height,
+        });
     }, []);
+
+    const handleGesture = useCallback((detectedGesture) => {
+        setGesture(detectedGesture);
+    }, []);
+
+    const gestureStream = useGestureStream({
+        page: "presentation",
+        onGesture: handleGesture,
+        onPointer: handlePointer,
+    });
+    const { start: startGestureStream, stop: stopGestureStream, setVideoElement } = gestureStream;
 
     const onResults = async (results) => {
         if (!webcamRef.current || !webcamRef.current.video) {
@@ -237,26 +232,18 @@ const PresentationPage = () => {
 
     useEffect(() => {
         return () => {
-            if (frameInterval.current) {
-                clearInterval(frameInterval.current);
-            }
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
+            stopGestureStream();
             stopCameraTracks();
             setSubscribed(false);
         };
-    }, [clientId, consentAccepted]);
+    }, [stopGestureStream]);
 
     useEffect(() => {
         if (!consentAccepted) {
             return;
         }
         const selfieSegmentation = new SelfieSegmentation({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
-            },
+            locateFile: (file) => `${SEGMENTATION_ASSET_BASE}/${file}`,
         });
 
         selfieSegmentation.setOptions({
@@ -271,7 +258,7 @@ const PresentationPage = () => {
         return () => {
             stopCameraTracks();
         };
-    }, [consentAccepted, videoReady]);
+    }, [consentAccepted, videoReady, startCameraIfReady]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -297,7 +284,7 @@ const PresentationPage = () => {
         };
     }, [pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length]);
 
-    const onPdfPageChange = async (pageNum) => {
+    const onPdfPageChange = useCallback(async (pageNum) => {
         if (!pdfUrl) {
             return;
         }
@@ -316,9 +303,9 @@ const PresentationPage = () => {
 
         const imgURL = canvas.toDataURL();
         setimageURL(imgURL);
-    };
+    }, [pdfUrl]);
 
-    const onPptSlideChange = (slideNum) => {
+    const onPptSlideChange = useCallback((slideNum) => {
         const slide = pptSlides[slideNum];
         const slideHtml = slide.getHTML();
 
@@ -326,7 +313,7 @@ const PresentationPage = () => {
             const imgURL = canvas.toDataURL();
             setimageURL(imgURL);
         });
-    };
+    }, [pptSlides]);
 
     useEffect(() => {
         if (fileType === "application/pdf") {
@@ -334,7 +321,7 @@ const PresentationPage = () => {
         } else if (fileType === "application/vnd.ms-powerpoint" || fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
             onPptSlideChange(pptSlideNum);
         }
-    }, [pdfPageNum, pptSlideNum, fileType]);
+    }, [pdfPageNum, pptSlideNum, fileType, onPdfPageChange, onPptSlideChange]);
 
     const imageHandler = async (e) => {
         const file = e.target.files[0];
@@ -375,152 +362,20 @@ const PresentationPage = () => {
     }
 
     const subscribeToWebhook = async () => {
-        if (!consentAccepted || !clientId) {
+        if (!consentAccepted) {
             return;
         }
         setSubscribed(true);
-        startFrameStreaming();
+        startGestureStream(webcamRef.current?.video);
     };
 
     const unsubscribeFromWebhook = async () => {
         setSubscribed(false);
-        stopFrameStreaming();
-        if (wsRef.current) {
-            wsRef.current.close();
-            wsRef.current = null;
-        }
+        stopGestureStream();
+        setMarkerPosition(null);
     };
 
-    let frameCounter = 0;
-
-    const startFrameStreaming = () => {
-        frameInterval.current = setInterval(async () => {
-            if (webcamRef.current && clientId) {
-                const video = webcamRef.current.video;
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                canvas.toBlob(async (blob) => {
-                    if (blob) {
-                        const formData = new FormData();
-                        formData.append("frame", blob, "frame.jpg");
-                        const frameId = ++frameCounter;
-                        
-
-                        try {
-                            await fetch(`${SERVER_URL}/process_frame?frameId=${frameId}&clientId=${encodeURIComponent(clientId)}`, {
-                                method: "POST",
-                                body: formData,
-                            });
-                        } catch (error) {
-                            console.error("Error sending frame", error);
-                        }
-                    }
-                }, "image/jpeg");
-            }
-        }, 100);
-    };
-
-    const stopFrameStreaming = () => {
-        if (frameInterval.current) {
-            clearInterval(frameInterval.current);
-        }
-    };
-
-    useEffect(() => {
-        if (!clientId || !consentAccepted || !subscribed) {
-            return;
-        }
-        const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
-        wsRef.current = ws;
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (!data?.gesture) {
-                    return;
-                }
-                setGesture(data.gesture);
-                if (data.gesture.includes(",")) {
-                    const [x, y] = data.gesture.split(',').map(Number);
-                    const canvasEl = canvasRef.current;
-                    if (canvasEl) {
-                        const rect = canvasEl.getBoundingClientRect();
-                        const scaleX = rect.width / canvasEl.width;
-                        const scaleY = rect.height / canvasEl.height;
-                        const px = rect.left + x * scaleX;
-                        const py = rect.top + y * scaleY;
-                        setMarkerPosition({ x: px, y: py });
-                    } else {
-                        setMarkerPosition({ x, y });
-                    }
-                }
-            } catch (e) {
-                console.error("Invalid WS message", e);
-            }
-        };
-
-        return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
-        };
-    }, [clientId, consentAccepted, subscribed]);
-
-    useEffect(() => {
-        const storedSettings = JSON.parse(sessionStorage.getItem("gestureSettings")) || {};
-        const showLabel = t('presentationPage.showPerson');
-        const hideLabel = t('presentationPage.hidePerson');
-
-        if (gesture) {
-            const mappedGesture = storedSettings[gesture] || gesture;
-
-            if (mappedGesture === "Swipe Right") {
-                if (fileType === "application/pdf" && pdfPageNum < totalPdfPages) {
-                    setPdfPageNum((prev) => prev + 1);
-                } else if (
-                    (fileType === "application/vnd.ms-powerpoint" ||
-                        fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation") &&
-                    pptSlideNum < pptSlides.length - 1
-                ) {
-                    setPptSlideNum((prev) => prev + 1);
-                }
-            } else if (mappedGesture === "Swipe Left") {
-                if (fileType === "application/pdf" && pdfPageNum > 1) {
-                    setPdfPageNum((prev) => prev - 1);
-                } else if (
-                    (fileType === "application/vnd.ms-powerpoint" ||
-                        fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation") &&
-                    pptSlideNum > 0
-                ) {
-                    setPptSlideNum((prev) => prev - 1);
-                }
-            } else if (
-                mappedGesture === showLabel ||
-                mappedGesture.toLowerCase() === showLabel.toLowerCase() ||
-                mappedGesture === "Show person" ||
-                mappedGesture === "Show Person"
-            ) {
-                setShowPerson(true);
-            } else if (
-                mappedGesture === hideLabel ||
-                mappedGesture.toLowerCase() === hideLabel.toLowerCase() ||
-                mappedGesture === "Hide person" ||
-                mappedGesture === "Hide Person"
-            ) {
-                setShowPerson(false);
-            } else if (mappedGesture === "Full screen" || mappedGesture === "Exit full screen") {
-                toggleFullScreen();
-            }
-        }
-    }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, t]);
-
-    const toggleFullScreen = async () => {
+    const toggleFullScreen = useCallback(async () => {
         if (!document.fullscreenElement) {
             if (containerRef.current) {
                 try {
@@ -536,7 +391,61 @@ const PresentationPage = () => {
             await unlockOrientation();
             setFullScreenMode(false);
         }
-    };
+    }, [lockLandscapeOrientation, unlockOrientation]);
+
+    useEffect(() => {
+        if (!gesture) {
+            return;
+        }
+        // Settings are keyed by the canonical gesture name the backend emits, so
+        // custom mappings work identically in every interface language.
+        const settings = loadSettings();
+        const action = settings[gesture];
+        if (!action) {
+            return;
+        }
+
+        const isPdf = fileType === "application/pdf";
+        const isPpt =
+            fileType === "application/vnd.ms-powerpoint" ||
+            fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+        switch (action) {
+            case ACTION.NEXT_SLIDE:
+                if (isPdf && pdfPageNum < totalPdfPages) {
+                    setPdfPageNum((prev) => prev + 1);
+                } else if (isPpt && pptSlideNum < pptSlides.length - 1) {
+                    setPptSlideNum((prev) => prev + 1);
+                }
+                break;
+            case ACTION.PREV_SLIDE:
+                if (isPdf && pdfPageNum > 1) {
+                    setPdfPageNum((prev) => prev - 1);
+                } else if (isPpt && pptSlideNum > 0) {
+                    setPptSlideNum((prev) => prev - 1);
+                }
+                break;
+            case ACTION.SHOW_PERSON:
+                setShowPerson(true);
+                break;
+            case ACTION.HIDE_PERSON:
+                setShowPerson(false);
+                break;
+            case ACTION.FULLSCREEN:
+                if (!document.fullscreenElement) {
+                    toggleFullScreen();
+                }
+                break;
+            case ACTION.EXIT_FULLSCREEN:
+                if (document.fullscreenElement) {
+                    toggleFullScreen();
+                }
+                break;
+            default:
+                break;
+        }
+    }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, toggleFullScreen]);
+
 
     useEffect(() => {
         const handleFullScreenChange = () => {
@@ -550,7 +459,7 @@ const PresentationPage = () => {
         return () => {
             document.removeEventListener("fullscreenchange", handleFullScreenChange);
         };
-    }, []);
+    }, [unlockOrientation]);
 
     return (
         <>
@@ -599,13 +508,7 @@ const PresentationPage = () => {
                         onClick={() => {
                             sessionStorage.setItem("cameraConsentAccepted", "true");
                             setConsentAccepted(true);
-                            if (clientId) {
-                                fetch(`${SERVER_URL}/client_consent`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ clientId, consentAccepted: true }),
-                                }).catch(() => {});
-                            }
+                            submitConsent(true).catch(() => {});
                         }}
                         sx={{
                             backgroundColor: "#1f5a3a",
@@ -634,12 +537,22 @@ const PresentationPage = () => {
                         {consentAccepted && (
                             <Webcam
                                 ref={webcamRef}
-                                onUserMediaError={() => {
+                                onUserMediaError={(err) => {
                                     setVideoReady(false);
+                                    const name = err?.name || "";
+                                    setCameraError(
+                                        name === "NotAllowedError" || name === "PermissionDeniedError"
+                                            ? t("cameraError.permissionDenied")
+                                            : name === "NotReadableError" || name === "TrackStartError"
+                                                ? t("cameraError.deviceBusy")
+                                                : t("cameraError.unavailable")
+                                    );
                                 }}
                                 onUserMedia={(stream) => {
                                     mediaStreamRef.current = stream;
+                                    setCameraError(null);
                                     setVideoReady(true);
+                                    setVideoElement(webcamRef.current?.video);
                                     startCameraIfReady();
                                 }}
                                 videoConstraints={{ width: 1280, height: 720 }}
@@ -693,6 +606,13 @@ const PresentationPage = () => {
                         </button>
 
                         <p>{subscribed && `${t('presentationPage.recognizedGesture')} ${gesture}`}</p>
+                        {cameraError && <p role="alert">{cameraError}</p>}
+                        {subscribed && gestureStream.status === STATUS.RECONNECTING && (
+                            <p role="status">{t('connection.reconnecting')}</p>
+                        )}
+                        {subscribed && gestureStream.error === "server_busy" && (
+                            <p role="alert">{t('connection.serverBusy')}</p>
+                        )}
                     </div>
                 </div>
             </div>

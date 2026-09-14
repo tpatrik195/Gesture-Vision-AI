@@ -1,14 +1,11 @@
 {
   "name": "client_frontend",
   "version": "0.1.0",
-  "proxy": "http://api:8000",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mediapipe/camera_utils": "^0.3.1675466862",
-    "@mediapipe/drawing_utils": "^0.3.1675466124",
-    "@mediapipe/hands": "^0.4.1675469240",
     "@mediapipe/selfie_segmentation": "^0.1.1675465747",
     "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
     "@mui/icons-material": "^6.4.8",
@@ -17,14 +14,11 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.8.3",
-    "cors": "^2.8.5",
     "framer-motion": "^12.23.24",
     "html2canvas": "^1.4.1",
     "i18next": "^24.2.3",
     "i18next-browser-languagedetector": "^8.0.4",
     "i18next-http-backend": "^3.0.2",
-    "lucide-react": "^0.507.0",
     "pdfjs-dist": "^3.11.174",
     "pptxgenjs": "^3.12.0",
     "react": "^19.0.0",
@@ -33,20 +27,18 @@
     "react-lottie": "^1.2.10",
     "react-router-dom": "^7.4.0",
     "react-scripts": "5.0.1",
-    "react-tsparticles": "^2.12.2",
     "react-webcam": "^7.2.0",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
     "swiper": "^11.2.6",
-    "swr": "^2.3.3",
-    "tsparticles": "^3.9.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "copy:mediapipe": "node -e \"const fs=require('fs'),p=require('path');const src=p.join('node_modules','@mediapipe','selfie_segmentation');const dst=p.join('public','mediapipe','selfie_segmentation');fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src))if(!/\\.(md|ts|json)$/.test(f))fs.copyFileSync(p.join(src,f),p.join(dst,f));console.log('mediapipe assets copied');\"",
+    "prestart": "npm run copy:mediapipe",
+    "prebuild": "npm run copy:mediapipe"
   },
   "eslintConfig": {
     "extends": [
@@ -67,6 +59,7 @@
     ]
   },
   "devDependencies": {
-    "@types/react-webcam": "^1.1.0"
+    "@types/react-webcam": "^1.1.0",
+    "http-proxy-middleware": "^2.0.6"
   }
 }

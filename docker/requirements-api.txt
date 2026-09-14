@@ -1,10 +1,10 @@
-fastapi
-uvicorn[standard]
-opencv-python-headless
-mediapipe
-numpy
-requests
-sqlalchemy
-psycopg2-binary
-pydantic
-python-multipart
+# Pinned for reproducible builds. Update deliberately, never implicitly.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+mediapipe==0.10.21
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+pydantic==2.10.6
+python-multipart==0.0.20

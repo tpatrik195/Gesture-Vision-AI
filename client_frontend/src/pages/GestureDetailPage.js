@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import Webcam from "react-webcam";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -7,188 +7,85 @@ import { getGestures } from "../utils/gestureOptions";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
 import { useTheme, useMediaQuery } from "@mui/material";
-
-const SERVER_URL = window.location.origin;
-const WS_URL = (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + "/ws";
+import useGestureStream, { STATUS } from "../hooks/useGestureStream";
+import { submitConsent } from "../api/client";
 
 const GestureDetailPage = () => {
     const webcamRef = useRef(null);
-    const frameInterval = useRef(null);
-    const isSendingRef = useRef(false);
-    const frameCanvasRef = useRef(null);
     const [gesture, setGesture] = useState("");
-    const [clientId, setClientId] = useState("");
+    const [cameraError, setCameraError] = useState(null);
     const [consentAccepted, setConsentAccepted] = useState(
         sessionStorage.getItem("cameraConsentAccepted") === "true"
     );
-    const wsRef = useRef(null);
     const mediaStreamRef = useRef(null);
     const { t } = useTranslation();
     const location = useLocation();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-const stopCameraTracks = () => {
-    const videoEl = webcamRef.current?.video;
-    const stream = mediaStreamRef.current || webcamRef.current?.stream || videoEl?.srcObject;
-    if (stream && stream.getTracks) {
-        stream.getTracks().forEach((track) => track.stop());
-    }
-    if (videoEl) {
-        videoEl.srcObject = null;
-    }
-    mediaStreamRef.current = null;
-};
-    useEffect(() => {
-        const handleUnload = () => {
-            stopCameraTracks();
-        };
-        window.addEventListener("beforeunload", handleUnload);
-        return () => window.removeEventListener("beforeunload", handleUnload);
-    }, []);
     const navigate = useNavigate();
 
     const gestures = getGestures(t);
     const { gestureId } = useParams();
     const currentGestureData = gestures.find((g) => g.id === Number(gestureId));
 
-    useEffect(() => {
-        const existingId = sessionStorage.getItem("clientId");
-        if (existingId) {
-            setClientId(existingId);
-            // DB write disabled for now:
-            // fetch(`${SERVER_URL}/register_client`, {
-            //     method: "POST",
-            //     headers: { "Content-Type": "application/json" },
-            //     body: JSON.stringify({
-            //         clientId: existingId,
-            //         consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-            //     }),
-            // }).catch(() => {});
-            return;
+    const handleGesture = useCallback((detectedGesture) => {
+        setGesture(detectedGesture);
+    }, []);
+
+    const { start, stop, setVideoElement, setPracticeTarget, status } = useGestureStream({
+        page: "practice",
+        onGesture: handleGesture,
+    });
+
+    const stopCameraTracks = useCallback(() => {
+        const videoEl = webcamRef.current?.video;
+        const stream = mediaStreamRef.current || webcamRef.current?.stream || videoEl?.srcObject;
+        if (stream && stream.getTracks) {
+            stream.getTracks().forEach((track) => track.stop());
         }
-        const newId = (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID())
-            || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-        sessionStorage.setItem("clientId", newId);
-        setClientId(newId);
-        // DB write disabled for now:
-        // fetch(`${SERVER_URL}/register_client`, {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify({
-        //         clientId: newId,
-        //         consentAccepted: sessionStorage.getItem("cameraConsentAccepted") === "true",
-        //     }),
-        // }).catch(() => {});
+        if (videoEl) {
+            videoEl.srcObject = null;
+        }
+        mediaStreamRef.current = null;
     }, []);
 
     useEffect(() => {
-        if (!clientId || !consentAccepted) {
-            return;
+        const handleUnload = () => stopCameraTracks();
+        window.addEventListener("beforeunload", handleUnload);
+        return () => window.removeEventListener("beforeunload", handleUnload);
+    }, [stopCameraTracks]);
+
+    // Telling the server which gesture is being practised turns every attempt
+    // into a labelled sample for the confusion matrix.
+    useEffect(() => {
+        if (currentGestureData) {
+            setPracticeTarget(currentGestureData.key);
         }
-        const ws = new WebSocket(`${WS_URL}?clientId=${encodeURIComponent(clientId)}`);
-        wsRef.current = ws;
+        return () => setPracticeTarget(null);
+    }, [currentGestureData, setPracticeTarget]);
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data?.gesture) {
-                    setGesture(data.gesture);
-                }
-            } catch (e) {
-                console.error("Invalid WS message", e);
-            }
-        };
-
-        startFrameStreaming();
-
+    useEffect(() => {
+        if (!consentAccepted) {
+            return undefined;
+        }
         return () => {
-            stopFrameStreaming();
+            stop();
             stopCameraTracks();
-            if (wsRef.current) {
-                wsRef.current.close();
-                wsRef.current = null;
-            }
         };
-    }, [clientId, consentAccepted]);
-
-    const startFrameStreaming = () => {
-        frameInterval.current = setInterval(async () => {
-            if (isSendingRef.current) {
-                return;
-            }
-            if (
-                webcamRef.current &&
-                webcamRef.current.video.readyState === 4 &&
-                clientId &&
-                wsRef.current &&
-                wsRef.current.readyState === WebSocket.OPEN
-            ) {
-                const video = webcamRef.current.video;
-                if (!frameCanvasRef.current) {
-                    frameCanvasRef.current = document.createElement("canvas");
-                }
-                const canvas = frameCanvasRef.current;
-                const ctx = canvas.getContext("2d");
-                if (!ctx) {
-                    return;
-                }
-
-                const targetWidth = 640;
-                const videoWidth = video.videoWidth || targetWidth;
-                const videoHeight = video.videoHeight || 360;
-                const targetHeight = Math.max(1, Math.round((videoHeight / videoWidth) * targetWidth));
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                isSendingRef.current = true;
-                canvas.toBlob(async (blob) => {
-                    if (blob) {
-                        try {
-                            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                                if (wsRef.current.bufferedAmount > 512 * 1024) {
-                                    return;
-                                }
-                                const frameBuffer = await blob.arrayBuffer();
-                                wsRef.current.send(frameBuffer);
-                            }
-                        } catch (error) {
-                            console.error("Error sending frame via WS", error);
-                        } finally {
-                            isSendingRef.current = false;
-                        }
-                    } else {
-                        isSendingRef.current = false;
-                    }
-                }, "image/jpeg", 0.75);
-            }
-        }, 180);
-    };
-
-    const stopFrameStreaming = () => {
-        if (frameInterval.current) {
-            clearInterval(frameInterval.current);
-            frameInterval.current = null;
-        }
-        isSendingRef.current = false;
-    };
+    }, [consentAccepted, stop, stopCameraTracks]);
 
     useEffect(() => {
         return () => {
             if (location.pathname.startsWith("/practice/")) {
-                stopFrameStreaming();
+                stop();
                 stopCameraTracks();
-                if (wsRef.current) {
-                    wsRef.current.close();
-                    wsRef.current = null;
-                }
             }
         };
-    }, [location.pathname]);
+    }, [location.pathname, stop, stopCameraTracks]);
 
     let backgroundColor = "white";
     if (gesture !== "no hand detected" && gesture !== "Normal" && currentGestureData) {
-        backgroundColor = gesture === currentGestureData.name
+        backgroundColor = gesture === currentGestureData.key
             ? "rgba(0, 255, 0, 0.3)"
             : "rgba(255, 0, 0, 0.3)";
     }
@@ -251,14 +148,7 @@ const stopCameraTracks = () => {
                         onClick={() => {
                             sessionStorage.setItem("cameraConsentAccepted", "true");
                             setConsentAccepted(true);
-                            // DB write disabled for now:
-                            // if (clientId) {
-                            //     fetch(`${SERVER_URL}/client_consent`, {
-                            //         method: "POST",
-                            //         headers: { "Content-Type": "application/json" },
-                            //         body: JSON.stringify({ clientId, consentAccepted: true }),
-                            //     }).catch(() => {});
-                            // }
+                            submitConsent(true).catch(() => {});
                         }}
                         sx={{
                             backgroundColor: "#1f5a3a",
@@ -300,9 +190,20 @@ const stopCameraTracks = () => {
                         ref={webcamRef}
                         onUserMedia={(stream) => {
                             mediaStreamRef.current = stream;
+                            setCameraError(null);
+                            setVideoElement(webcamRef.current?.video);
+                            start(webcamRef.current?.video);
                         }}
-                        onUserMediaError={() => {
+                        onUserMediaError={(err) => {
                             mediaStreamRef.current = null;
+                            const name = err?.name || "";
+                            setCameraError(
+                                name === "NotAllowedError" || name === "PermissionDeniedError"
+                                    ? t("cameraError.permissionDenied")
+                                    : name === "NotReadableError" || name === "TrackStartError"
+                                        ? t("cameraError.deviceBusy")
+                                        : t("cameraError.unavailable")
+                            );
                         }}
                         style={{ width: "100%", maxWidth: "840px", borderRadius: "10px", transform: "scaleX(-1)" }}
                     />
@@ -310,6 +211,10 @@ const stopCameraTracks = () => {
                 <p style={{ marginTop: isMobile ? "8px" : "10px", fontSize: isMobile ? "16px" : "20px", fontWeight: "bold", textAlign: "center" }}>
                     {t("presentationPage.recognizedGesture")} {gesture}
                 </p>
+                {cameraError && <p role="alert" style={{ textAlign: "center" }}>{cameraError}</p>}
+                {!cameraError && status === STATUS.RECONNECTING && (
+                    <p role="status" style={{ textAlign: "center" }}>{t("connection.reconnecting")}</p>
+                )}
             </div>
         </div>
     );

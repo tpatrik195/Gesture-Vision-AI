@@ -1,8 +1,13 @@
 FROM node:18-alpine AS build
+
 WORKDIR /app/client_frontend
+
 COPY client_frontend/package.json client_frontend/package-lock.json ./
 RUN npm ci
+
 COPY client_frontend ./
+# prebuild vendors the MediaPipe wasm/model files into public/mediapipe so the
+# app never depends on an external CDN at runtime.
 RUN npm run build
 
 FROM nginx:1.27-alpine

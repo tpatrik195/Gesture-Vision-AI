@@ -1,23 +1,40 @@
+# Production-like stack: Nginx serves the built frontend and proxies /api and
+# /ws to the API container. Only the web container is published.
+name: gesture-vision
+
 services:
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=gesture
-      - POSTGRES_PASSWORD=gesture_password
-      - POSTGRES_DB=gesture_db
+      POSTGRES_USER: ${POSTGRES_USER:-gesture}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-gesture_db}
     volumes:
       - gesture_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gesture}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
     restart: unless-stopped
+    env_file:
+      - ../.env
     environment:
-      - DATABASE_URL=postgresql+psycopg2://gesture:gesture_password@db:5432/gesture_db
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-gesture}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gesture_db}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
 
   web:
     build:
@@ -25,7 +42,7 @@ services:
       dockerfile: docker/Dockerfile.frontend.prod
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "${WEB_PORT:-3000}:80"
     depends_on:
       - api
 

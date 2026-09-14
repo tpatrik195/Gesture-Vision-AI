@@ -1,82 +1,91 @@
 {
-    "menuBar": {
-        "home": "Home",
-        "presentation": "Presentation",
-        "practice": "Practice",
-        "settings": "Settings"
-    },
-    "presentationPage": {
-        "uploadFile": "Upload file",
-        "gestureDetection": "Gesture detection",
-        "stop": "Stop",
-        "showPerson": "Show person",
-        "hidePerson": "Hide person",
-        "recognizedGesture": "Recognized gesture: ",
-        "fullScreen": "Full screen",
-        "exitFullScreen": "Exit"
-    },
-    "settingsPage": {
-        "title": "Gesture Settings",
-        "subtitle": "Customize which gesture triggers which function",
-        "option1": "Option 1",
-        "option2": "Option 2",
-        "option3": "Option 3",
-        "option4": "Option 4",
-        "option5": "Option 5",
-        "zoomIn": "Zoom In",
-        "zoomOut": "Zoom Out",
-        "swipeLeft": "Swipe Left",
-        "swipeRight": "Swipe Right",
-        "chooseOption": "Choose option",
-        "exitFullScreen": "Exit full screen",
-        "laserPointer": "Laser pointer",
-        "debugMode": "Debug mode",
-        "gesture": "Gesture",
-        "function": "Function",
-        "saveButton": "Save settings"
-    },
-    "practiceCard": {
-        "tryGesture": "Try this gesture"
-    },
-    "practicePage": {
-        "option1Description": "Extend your thumb on your right hand and keep the other fingers closed.",
-        "option2Description": "Right hand to the leftward, with two fingers extended, and left hand with palm facing upward.",
-        "option3Description": "Extend your index, middle, and ring fingers on your right hand, keep the others closed.",
-        "option4Description": "Extend all fingers on your right hand except the thumb.",
-        "option5Description": "Extend all five fingers on your right hand, keeping them close together.",
-        "zoomInDescription": "Make a zoom-in gesture using all five fingers on your right hand. The fingertips should be far apart.",
-        "zoomOutDescription": "On your right hand, pinch all five fingers together so the fingertips are very close. Your hand should be facing upward. Your left hand should be open, also facing upward.",
-        "swipeLeftDescription": "Make a swipe left gesture with your left hand, as if waving to the left.",
-        "swipeRightDescription": "Make a swipe right gesture with your left hand, as if waving to the right.",
-        "laserPointerDescription": "Use your right hand's index finger to point at something on the screen."
-    },
-    "homePage": {
-        "subtitle": "The future of education, controlled by gestures",
-        "subsubtitle": "A new era in online education: control everything completely touch-free, using just your hands!",
-        "functions": "Key Features",
-        "func1Title": "Slide navigation with gestures",
-        "func1Description": "Switch between slides with a simple left or right hand movement.",
-        "func2Title": "Real-time background removal",
-        "func2Description": "Your camera avatar integrates into the presentation in real time.",
-        "func3Title": "Zoom with gestures",
-        "func3Description": "Highlight yourself on screen when sharing important thoughts.",
-        "func4Title": "Customizable control",
-        "func4Description": "You decide which gesture triggers which function - fully configurable.",
-        "func5Title": "Fullscreen & Debug Mode",
-        "func5Description": "Present in fullscreen or debug with detailed gesture recognition feedback.",
-        "tryItTitle": "Try It",
-        "tryItDescription": "Would you like to try? Experience how easy gesture control is!",
-        "tryItButton": "Try it now",
-        "question": "Why should you use it?",
-        "benefits": "Online classes become not only <strong>more visually engaging</strong> but also <strong>more immersive</strong> - supporting <strong>teachers</strong> in their work and increasing <strong>student</strong> attention and participation.",
-        "footerTagline": "Intelligent, touch-free presentation control.",
-        "footerCopyright": "© 2026 Gesture Vision AI"
-    },
-    "consentDialog": {
-        "title": "Approve camera usage",
-        "description": "The camera image is transmitted encrypted and used only for gesture recognition. It is not shared with third parties and is not stored.",
-        "continue": "To continue, please accept the terms.",
-        "decline": "Decline",
-        "accept": "Accept"
-    }
+  "menuBar": {
+    "home": "Home",
+    "presentation": "Presentation",
+    "practice": "Practice",
+    "settings": "Settings"
+  },
+  "presentationPage": {
+    "uploadFile": "Upload file",
+    "gestureDetection": "Gesture detection",
+    "stop": "Stop",
+    "showPerson": "Show person",
+    "hidePerson": "Hide person",
+    "recognizedGesture": "Recognized gesture: ",
+    "fullScreen": "Full screen",
+    "exitFullScreen": "Exit"
+  },
+  "settingsPage": {
+    "title": "Gesture Settings",
+    "subtitle": "Customize which gesture triggers which function",
+    "option1": "Option 1",
+    "option2": "Option 2",
+    "option3": "Option 3",
+    "option4": "Option 4",
+    "option5": "Option 5",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "swipeLeft": "Swipe Left",
+    "swipeRight": "Swipe Right",
+    "chooseOption": "Choose option",
+    "exitFullScreen": "Exit full screen",
+    "laserPointer": "Laser pointer",
+    "debugMode": "Debug mode",
+    "gesture": "Gesture",
+    "function": "Function",
+    "saveButton": "Save settings"
+  },
+  "practiceCard": {
+    "tryGesture": "Try this gesture"
+  },
+  "practicePage": {
+    "option1Description": "Extend your thumb on your right hand and keep the other fingers closed.",
+    "option2Description": "Right hand to the leftward, with two fingers extended, and left hand with palm facing upward.",
+    "option3Description": "Extend your index, middle, and ring fingers on your right hand, keep the others closed.",
+    "option4Description": "Extend all fingers on your right hand except the thumb.",
+    "option5Description": "Extend all five fingers on your right hand, keeping them close together.",
+    "zoomInDescription": "Make a zoom-in gesture using all five fingers on your right hand. The fingertips should be far apart.",
+    "zoomOutDescription": "On your right hand, pinch all five fingers together so the fingertips are very close. Your hand should be facing upward. Your left hand should be open, also facing upward.",
+    "swipeLeftDescription": "Make a swipe left gesture with your left hand, as if waving to the left.",
+    "swipeRightDescription": "Make a swipe right gesture with your left hand, as if waving to the right.",
+    "laserPointerDescription": "Use your right hand's index finger to point at something on the screen."
+  },
+  "homePage": {
+    "subtitle": "The future of education, controlled by gestures",
+    "subsubtitle": "A new era in online education: control everything completely touch-free, using just your hands!",
+    "functions": "Key Features",
+    "func1Title": "Slide navigation with gestures",
+    "func1Description": "Switch between slides with a simple left or right hand movement.",
+    "func2Title": "Real-time background removal",
+    "func2Description": "Your camera avatar integrates into the presentation in real time.",
+    "func3Title": "Zoom with gestures",
+    "func3Description": "Highlight yourself on screen when sharing important thoughts.",
+    "func4Title": "Customizable control",
+    "func4Description": "You decide which gesture triggers which function - fully configurable.",
+    "func5Title": "Fullscreen & Debug Mode",
+    "func5Description": "Present in fullscreen or debug with detailed gesture recognition feedback.",
+    "tryItTitle": "Try It",
+    "tryItDescription": "Would you like to try? Experience how easy gesture control is!",
+    "tryItButton": "Try it now",
+    "question": "Why should you use it?",
+    "benefits": "Online classes become not only <strong>more visually engaging</strong> but also <strong>more immersive</strong> - supporting <strong>teachers</strong> in their work and increasing <strong>student</strong> attention and participation.",
+    "footerTagline": "Intelligent, touch-free presentation control.",
+    "footerCopyright": "© 2026 Gesture Vision AI"
+  },
+  "consentDialog": {
+    "title": "Approve camera usage",
+    "description": "The camera image is transmitted encrypted and used only for gesture recognition. It is not shared with third parties and is not stored.",
+    "continue": "To continue, please accept the terms.",
+    "decline": "Decline",
+    "accept": "Accept"
+  },
+  "cameraError": {
+    "permissionDenied": "Camera access is blocked. Allow it in the browser address bar, then reload the page.",
+    "deviceBusy": "Another application is using the camera. Close it and try again.",
+    "unavailable": "No camera is available on this device."
+  },
+  "connection": {
+    "reconnecting": "Reconnecting to the server...",
+    "serverBusy": "The server is at capacity, please try again in a few minutes."
+  }
 }
