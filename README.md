@@ -80,16 +80,18 @@ cp .env.example .env
 Fejlesztői stack, hot reloaddal, egyetlen belépési ponton:
 
 ```bash
-docker compose -f docker/docker-compose.yml up --build
+docker compose up --build
 # app:  http://localhost:3000
 ```
 
 Production-szerű stack (Nginx szolgálja ki a buildet):
 
 ```bash
-docker compose -f docker/docker-compose.prod.yml up --build -d
+docker compose -f compose.prod.yaml up --build -d
 # app:  http://localhost:3000
 ```
+
+Mindkét parancsot a repó gyökeréből kell futtatni — a Compose innen olvassa a `.env`-et.
 
 ### 2. Docker nélkül
 
@@ -203,7 +205,9 @@ app/                    FastAPI backend
 client_frontend/        React alkalmazás
   src/api/              API kliens, munkamenet-kezelés
   src/hooks/            useGestureStream — a teljes gesztus-átvitel
-docker/                 Dockerfile-ok, Compose stackek, Nginx konfigok
+compose.yaml            fejlesztői stack
+compose.prod.yaml       production stack
+docker/                 Dockerfile-ok és Nginx konfigok
 docs/                   generált dokumentáció (PDF) és forrásai
 tools/                  kalibráló és dokumentációs eszközök
 browser_extension/      Zoom/Meet kiegészítő (külön fejlesztés alatt)

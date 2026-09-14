@@ -1,5 +1,7 @@
 # Production-like stack: Nginx serves the built frontend and proxies /api and
 # /ws to the API container. Only the web container is published.
+#
+#   docker compose -f compose.prod.yaml up --build -d
 name: gesture-vision
 
 services:
@@ -20,11 +22,11 @@ services:
 
   api:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile.api
     restart: unless-stopped
     env_file:
-      - ../.env
+      - .env
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-gesture}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gesture_db}
     depends_on:
@@ -38,7 +40,7 @@ services:
 
   web:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile.frontend.prod
     restart: unless-stopped
     ports:

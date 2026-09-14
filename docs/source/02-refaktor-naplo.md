@@ -16,6 +16,10 @@ Minden beállítás a `app/config.py`-ba került, környezeti változókból olv
 
 A függőségek verzióhoz rögzítve (`docker/requirements-api.txt`), így a build reprodukálható — kutatási artefaktumnál ez alapkövetelmény.
 
+**Compose fájlok a repó gyökerében.** A Compose a projekt könyvtárából olvassa a `.env`-et, ami a compose fájl mappája — a `docker/` alatti elhelyezés miatt a `${POSTGRES_PASSWORD}` behelyettesítés nem oldódott volna fel. A `compose.yaml` és `compose.prod.yaml` ezért a gyökérbe került; a Dockerfile-ok és Nginx konfigok maradtak a `docker/` mappában. A `.dockerignore` kizárja a `.env`-et, így titok nem kerülhet image-be.
+
+**Fejlesztői reverse proxy.** A dev stack is Nginx mögött fut, ugyanazon a `/api` és `/ws` útvonalon, mint a production. A webpack hot-reload socketje `/ws-hmr`-re került, hogy ne ütközzön a gesztus-WebSockettel.
+
 ## 3. Gesztusfelismerés
 
 **`IMAGE` → `VIDEO` mód.** A MediaPipe HandLandmarker mostantól `RunningMode.VIDEO`-ban fut, monoton növekvő időbélyegekkel. Így a modell képkockák között követi a kezet ahelyett, hogy minden képkockán újrafuttatná a teljes tenyérdetektálást.

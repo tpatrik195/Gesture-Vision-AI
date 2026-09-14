@@ -1,5 +1,22 @@
+# Secrets are passed at runtime via env_file, never baked into an image.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+
 **/node_modules
 **/__pycache__
 **/*.pyc
-.git
+**/.venv
+venv/
+
 client_frontend/build
+client_frontend/public/mediapipe
+
+docs/
+meresek/
+tools/
+browser_extension/
+*.log
