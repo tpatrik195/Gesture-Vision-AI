@@ -28,3 +28,6 @@ node_modules/
 # Local secrets
 .env
 .env.local
+
+# Measurement exports (raw research data - archive deliberately)
+meresek/data/
