@@ -1,0 +1,61 @@
+# One entry point for the app, the API and the WebSocket.
+#
+# SITE_ADDRESS controls TLS:
+#   :80                  plain HTTP, for local production-like testing
+#   gesture.example.com  automatic HTTPS via Let's Encrypt
+{
+	email {$ACME_EMAIL:}
+	# Uncomment while testing certificate issuance to avoid Let's Encrypt rate limits:
+	# acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	# Gesture stream. Long-lived, so no read timeout.
+	@websocket {
+		path /ws
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	handle @websocket {
+		reverse_proxy api:8000 {
+			flush_interval -1
+		}
+	}
+
+	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# Hashed build assets and the vendored MediaPipe runtime are immutable.
+	@immutable path /static/* /mediapipe/*
+	handle @immutable {
+		header Cache-Control "public, max-age=31536000, immutable"
+		root * /srv/www
+		file_server
+	}
+
+	handle {
+		root * /srv/www
+		try_files {path} /index.html
+		file_server
+		header /index.html Cache-Control "no-cache"
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		# The camera is used on-page only; no third party may request it.
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

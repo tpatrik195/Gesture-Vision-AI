@@ -22,8 +22,9 @@ TDK-kutatás — Sapientia EMTE, Marosvásárhelyi Kar.
 | `Pointing` | statikus + koordináta | lézermutató, parancs mód élesítése |
 | `Swipe Left` | dinamikus | előző dia |
 | `Swipe Right` | dinamikus | következő dia |
-| `Zoom In` | statikus | nagyítás |
-| `Zoom Out` | statikus | kicsinyítés |
+| `Zoom In` | statikus | előadó nagyítása a dián |
+| `Zoom Out` | statikus | előadó kicsinyítése |
+| `Option 1`–`Option 5` | statikus (ujjszámlálás, oldalra fordított kéz) | szabadon hozzárendelhető |
 
 A gesztuskészletet az API adja meg (`GET /api/health`, `POST /api/session`), a felület ez alapján épül fel — új gesztus bevezetéséhez nem kell frontendet módosítani.
 
@@ -32,18 +33,18 @@ A gesztuskészletet az API adja meg (`GET /api/health`, `POST /api/session`), a 
 ## Architektúra
 
 ```
-böngésző                        Nginx                      API (FastAPI)
-┌────────────────────┐          ┌──────────┐               ┌──────────────────────┐
-│ kamera             │          │          │   /api        │ session, consent     │
-│  ├─ szegmentálás   │ ───────► │  proxy   │ ────────────► │ egészség             │
-│  │  (MediaPipe,    │          │          │   /ws         │                      │
-│  │   WASM, helyben)│ ◄──────► │          │ ◄───────────► │ gesztus-pipeline     │
-│  └─ képkocka (JPEG)│          └──────────┘               │  ├─ MediaPipe VIDEO  │
-└────────────────────┘                                     │  ├─ állapotgép       │
-                                                           │  └─ telemetria       │
-                                                           └──────────┬───────────┘
-                                                                      │
-                                                                PostgreSQL
+böngésző                     Caddy (TLS)                   API (FastAPI)
+┌────────────────────┐    ┌────────────────┐            ┌──────────────────────┐
+│ kamera             │    │ statikus build │  /api      │ session, consent     │
+│  ├─ szegmentálás   │ ──►│ + reverse      │ ─────────► │ egészség             │
+│  │  (MediaPipe,    │    │   proxy        │  /ws       │                      │
+│  │   WASM, helyben)│ ◄─►│ + Let's Encrypt│ ◄────────► │ gesztus-pipeline     │
+│  └─ képkocka (JPEG)│    └────────────────┘            │  ├─ MediaPipe VIDEO  │
+└────────────────────┘                                  │  ├─ állapotgép       │
+                                                        │  └─ telemetria       │
+                                                        └──────────┬───────────┘
+                                                                   │
+                                                             PostgreSQL
 ```
 
 **Tervezési elvek**
@@ -62,7 +63,7 @@ böngésző                        Nginx                      API (FastAPI)
 | Frontend | React 19, Material UI, react-router, i18next, pdf.js, MediaPipe Selfie Segmentation (WASM, helyben kiszolgálva) |
 | Backend | Python 3.10, FastAPI, Uvicorn, MediaPipe Tasks Vision, OpenCV (headless), SQLAlchemy |
 | Adatbázis | PostgreSQL 16 |
-| Infrastruktúra | Docker Compose, Nginx reverse proxy |
+| Infrastruktúra | Docker Compose, Caddy (production, automatikus TLS), Nginx (fejlesztői proxy) |
 
 ---
 
@@ -84,14 +85,23 @@ docker compose up --build
 # app:  http://localhost:3000
 ```
 
-Production-szerű stack (Nginx szolgálja ki a buildet):
+Production stack (Caddy szolgálja ki a buildet és kezeli a TLS-t):
 
 ```bash
 docker compose -f compose.prod.yaml up --build -d
-# app:  http://localhost:3000
+# app: http://localhost  (SITE_ADDRESS=:80 mellett)
 ```
 
+Éles szerveren, valódi domainnel a `.env`-ben `SITE_ADDRESS=gesztus.pelda.hu` — ilyenkor a
+Caddy automatikusan kér Let's Encrypt tanúsítványt. Részletek: `docs/03-uzembehelyezes.pdf`.
+
 Mindkét parancsot a repó gyökeréből kell futtatni — a Compose innen olvassa a `.env`-et.
+
+Telepítés után:
+
+```bash
+python3 tools/smoke_test.py https://gesztus.pelda.hu
+```
 
 ### 2. Docker nélkül
 
@@ -206,10 +216,10 @@ client_frontend/        React alkalmazás
   src/api/              API kliens, munkamenet-kezelés
   src/hooks/            useGestureStream — a teljes gesztus-átvitel
 compose.yaml            fejlesztői stack
-compose.prod.yaml       production stack
-docker/                 Dockerfile-ok és Nginx konfigok
+compose.prod.yaml       production stack (Caddy + TLS)
+docker/                 Dockerfile-ok, Caddyfile, dev Nginx konfig
 docs/                   generált dokumentáció (PDF) és forrásai
-tools/                  kalibráló és dokumentációs eszközök
+tools/                  kalibráló, ellenőrző, mentő és dokumentációs eszközök
 browser_extension/      Zoom/Meet kiegészítő (külön fejlesztés alatt)
 meresek/                mérési szkriptek
 ```

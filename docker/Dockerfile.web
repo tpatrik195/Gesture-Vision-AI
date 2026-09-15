@@ -1,0 +1,23 @@
+# Builds the frontend and ships it inside Caddy, which also terminates TLS and
+# proxies the API, so production needs one published container.
+FROM node:18-alpine AS build
+
+WORKDIR /app/client_frontend
+
+COPY client_frontend/package.json client_frontend/package-lock.json ./
+RUN npm ci
+
+COPY client_frontend ./
+# prebuild vendors the MediaPipe wasm/model files into public/mediapipe, so the
+# app never depends on an external CDN at runtime.
+RUN npm run build
+
+FROM caddy:2.8-alpine
+
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/client_frontend/build /srv/www
+
+EXPOSE 80 443
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -q -O /dev/null http://127.0.0.1:80/ || exit 1
