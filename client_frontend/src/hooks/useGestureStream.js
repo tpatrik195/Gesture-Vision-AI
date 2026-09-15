@@ -21,11 +21,12 @@ export const STATUS = {
     ERROR: "error",
 };
 
-export default function useGestureStream({ page = "unknown", onGesture, onPointer } = {}) {
+export default function useGestureStream({ page = "unknown", onGesture, onPointer, debug = false } = {}) {
     const [status, setStatus] = useState(STATUS.IDLE);
     const [error, setError] = useState(null);
     const [handPresent, setHandPresent] = useState(false);
     const [latency, setLatency] = useState(null);
+    const [debugInfo, setDebugInfo] = useState(null);
 
     const socketRef = useRef(null);
     const videoRef = useRef(null);
@@ -40,11 +41,23 @@ export default function useGestureStream({ page = "unknown", onGesture, onPointe
     const practiceTargetRef = useRef(null);
     const onGestureRef = useRef(onGesture);
     const onPointerRef = useRef(onPointer);
+    const debugRef = useRef(debug);
 
     useEffect(() => {
         onGestureRef.current = onGesture;
         onPointerRef.current = onPointer;
     }, [onGesture, onPointer]);
+
+    useEffect(() => {
+        debugRef.current = debug;
+        const socket = socketRef.current;
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: "debug", enabled: debug }));
+        }
+        if (!debug) {
+            setDebugInfo(null);
+        }
+    }, [debug]);
 
     const clearTimers = useCallback(() => {
         if (timerRef.current) {
@@ -143,6 +156,14 @@ export default function useGestureStream({ page = "unknown", onGesture, onPointe
                     onPointerRef.current?.(null);
                 }
                 break;
+            case "debug":
+                setDebugInfo({
+                    raw: message.raw,
+                    confidence: message.confidence,
+                    hands: message.hands,
+                    inferenceMs: message.inferenceMs,
+                });
+                break;
             case "error":
                 setError(message.message || message.code);
                 break;
@@ -168,7 +189,7 @@ export default function useGestureStream({ page = "unknown", onGesture, onPointe
                 attemptsRef.current = 0;
                 setStatus(STATUS.CONNECTED);
                 setError(null);
-                socket.send(JSON.stringify({ type: "hello", page }));
+                socket.send(JSON.stringify({ type: "hello", page, debug: debugRef.current }));
                 if (practiceTargetRef.current) {
                     socket.send(
                         JSON.stringify({ type: "practice", expected: practiceTargetRef.current })
@@ -274,6 +295,7 @@ export default function useGestureStream({ page = "unknown", onGesture, onPointe
         error,
         handPresent,
         latency,
+        debugInfo,
         isActive: status === STATUS.CONNECTED,
         start,
         stop,

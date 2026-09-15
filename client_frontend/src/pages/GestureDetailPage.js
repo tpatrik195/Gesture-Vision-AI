@@ -3,7 +3,7 @@ import Webcam from "react-webcam";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../App.css";
-import { getGestures } from "../utils/gestureOptions";
+import { getGestures, loadSettings } from "../utils/gestureOptions";
 import { useParams } from "react-router-dom";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, Typography } from "@mui/material";
 import { useTheme, useMediaQuery } from "@mui/material";
@@ -32,10 +32,13 @@ const GestureDetailPage = () => {
         setGesture(detectedGesture);
     }, []);
 
-    const { start, stop, setVideoElement, setPracticeTarget, status } = useGestureStream({
-        page: "practice",
-        onGesture: handleGesture,
-    });
+    const [debugMode] = useState(() => !!loadSettings().debugMode);
+    const { start, stop, setVideoElement, setPracticeTarget, status, debugInfo, latency } =
+        useGestureStream({
+            page: "practice",
+            onGesture: handleGesture,
+            debug: debugMode,
+        });
 
     const stopCameraTracks = useCallback(() => {
         const videoEl = webcamRef.current?.video;
@@ -211,6 +214,12 @@ const GestureDetailPage = () => {
                 <p style={{ marginTop: isMobile ? "8px" : "10px", fontSize: isMobile ? "16px" : "20px", fontWeight: "bold", textAlign: "center" }}>
                     {t("presentationPage.recognizedGesture")} {gesture}
                 </p>
+                {debugMode && debugInfo && (
+                    <p style={{ fontFamily: "monospace", fontSize: "0.8rem", textAlign: "center" }}>
+                        {`raw: ${debugInfo.raw} · conf: ${debugInfo.confidence} · kéz: ${debugInfo.hands}`}
+                        {latency ? ` · RTT ${latency.roundtripMs} ms` : ""}
+                    </p>
+                )}
                 {cameraError && <p role="alert" style={{ textAlign: "center" }}>{cameraError}</p>}
                 {!cameraError && status === STATUS.RECONNECTING && (
                     <p role="status" style={{ textAlign: "center" }}>{t("connection.reconnecting")}</p>

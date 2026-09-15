@@ -149,18 +149,20 @@ curl http://localhost:3000/api/health
 **Kliens → szerver (szöveg):**
 
 ```json
-{"type": "hello",    "page": "presentation"}
+{"type": "hello",    "page": "presentation", "debug": false}
 {"type": "practice", "expected": "Swipe Left"}
+{"type": "debug",    "enabled": true}
 ```
 
 **Szerver → kliens (szöveg):**
 
 ```json
 {"type": "ready",   "clientId": "…"}
-{"type": "gesture", "gesture": "Swipe Right", "confidence": 0.87, "seq": 42, "pipelineMs": 18.4}
+{"type": "gesture", "gesture": "Swipe Right", "actionable": true, "confidence": 0.87, "seq": 42, "pipelineMs": 18.4}
 {"type": "pointer", "x": 0.42, "y": 0.31}
 {"type": "ack",     "seq": 40, "pipelineMs": 17.9}
 {"type": "status",  "state": "tracking"}
+{"type": "debug",   "raw": "Zoom In", "confidence": 0.31, "hands": 1, "inferenceMs": 21.4}
 {"type": "error",   "code": "frame_too_large", "message": "…"}
 ```
 
@@ -181,6 +183,17 @@ A rendszer éles használat közben gyűjti a kutatáshoz szükséges adatokat. 
 A `practice_attempts` a kulcs: a gyakorló felületen a felhasználó megmondja, melyik gesztust próbálja, így minden próbálkozás címkézett adatpont — pontosan az, amiből statisztikailag érvényes pontosságmérés készíthető, sok résztvevővel.
 
 A latencia három komponensre bontható: `pipelineMs` (szerveroldali feldolgozás), a kliensoldali körbeérés, és a kettő különbségéből a hálózati idő.
+
+### Debug mód
+
+A Beállítások oldalon kapcsolható be. Ilyenkor a felület képkockánként mutatja a **nyers**
+felismerést (`raw`), a megbízhatóságot, az észlelt kezek számát és a körbeérési időt — ez mutatja
+meg, hogy a rendszer látja-e a kezet, és mit ismer fel, mielőtt a szűrés eldöntené, kiadja-e
+eseményként.
+
+Az `actionable: false` azt jelenti, hogy a gesztust felismerte, de nem hajtja végre: a lapozó
+gesztusok csak akkor vezérelnek, ha előtte a `Pointing` gesztus élesítette a parancs módot. Ez
+akadályozza meg, hogy egy véletlen kézmozdulat lapozzon.
 
 ### Gesztusküszöbök kalibrálása
 

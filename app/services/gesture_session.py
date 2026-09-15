@@ -103,46 +103,49 @@ class GestureSession:
         self._last_pointer_emit = now
         return True
 
-    def evaluate(self, gesture: str, confidence: float) -> str | None:
+    def evaluate(self, gesture: str, confidence: float) -> tuple[str, bool] | None:
         """Debounce raw detections into a stable gesture event.
 
-        A gesture is emitted only after it has been seen consistently for a
-        minimum hold time, and navigation gestures additionally require the user
-        to have armed command mode with a pointing gesture, which keeps casual
-        hand movement from flipping slides.
+        Detection flickers from frame to frame on a real hand, so a gesture wins
+        by majority inside a short sliding window rather than by an unbroken run:
+        a single uncertain frame no longer discards the evidence so far.
+
+        Returns the gesture and whether it should trigger its action. Navigation
+        gestures only act while command mode is armed (by a pointing gesture),
+        which stops casual hand movement from flipping slides - but they are
+        still reported, so the user can see what was recognised.
         """
+        now = time.monotonic()
+        self._buffer = [
+            (name, ts) for name, ts in self._buffer
+            if now - ts <= settings.gesture_window_seconds
+        ]
+
         if not gesture or gesture in IGNORED_GESTURES:
-            self._buffer.clear()
             return None
         if confidence < settings.min_confidence:
             return None
 
-        now = time.monotonic()
         self._buffer.append((gesture, now))
-        if len(self._buffer) > settings.gesture_threshold:
-            self._buffer.pop(0)
-
-        if len(self._buffer) < settings.gesture_threshold:
+        votes = [ts for name, ts in self._buffer if name == gesture]
+        if len(votes) < settings.gesture_threshold:
             return None
-        if any(name != gesture for name, _ in self._buffer):
-            return None
-        if now - self._buffer[0][1] < settings.gesture_hold_seconds:
+        if now - votes[0] < settings.gesture_hold_seconds:
             return None
         if now - self._last_sent.get(gesture, 0.0) < settings.gesture_cooldown_seconds:
             return None
 
-        if gesture == GESTURE_POINTING:
-            self._command_mode_until = now + settings.command_mode_window_seconds
-            self._last_sent[gesture] = now
-            self.stats.gestures_emitted += 1
-            return gesture
-
-        if gesture in NAVIGATION_GESTURES and now > self._command_mode_until:
-            return None
-
         self._last_sent[gesture] = now
         self.stats.gestures_emitted += 1
-        return gesture
+
+        if gesture == GESTURE_POINTING:
+            self._command_mode_until = now + settings.command_mode_window_seconds
+            return gesture, True
+
+        if gesture in NAVIGATION_GESTURES and now > self._command_mode_until:
+            return gesture, False
+
+        return gesture, True
 
 
 class SessionManager:

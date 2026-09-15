@@ -43,6 +43,7 @@ const PresentationPage = () => {
     const [subscribed, setSubscribed] = useState(false);
     const [fullScreenMode, setFullScreenMode] = useState(false);
     const [markerPosition, setMarkerPosition] = useState(null);
+    const [pendingAction, setPendingAction] = useState(null);
     const [cameraError, setCameraError] = useState(null);
     const [consentAccepted, setConsentAccepted] = useState(
         sessionStorage.getItem("cameraConsentAccepted") === "true"
@@ -59,6 +60,7 @@ const PresentationPage = () => {
     const personCanvasRef = useRef(null);
     const [personScale, setPersonScale] = useState(1);
     const personScaleRef = useRef(1);
+    const [debugMode] = useState(() => !!loadSettings().debugMode);
 
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -157,14 +159,20 @@ const PresentationPage = () => {
         });
     }, []);
 
-    const handleGesture = useCallback((detectedGesture) => {
+    const handleGesture = useCallback((detectedGesture, message) => {
+        // Always show what was recognised; only act when the server says the
+        // gesture is armed (navigation needs command mode).
         setGesture(detectedGesture);
+        if (message?.actionable !== false) {
+            setPendingAction({ gesture: detectedGesture, at: Date.now() });
+        }
     }, []);
 
     const gestureStream = useGestureStream({
         page: "presentation",
         onGesture: handleGesture,
         onPointer: handlePointer,
+        debug: debugMode,
     });
     const { start: startGestureStream, stop: stopGestureStream, setVideoElement } = gestureStream;
 
@@ -432,13 +440,13 @@ const PresentationPage = () => {
     }, [lockLandscapeOrientation, unlockOrientation]);
 
     useEffect(() => {
-        if (!gesture) {
+        if (!pendingAction) {
             return;
         }
         // Settings are keyed by the canonical gesture name the backend emits, so
         // custom mappings work identically in every interface language.
         const settings = loadSettings();
-        const action = settings[gesture];
+        const action = settings[pendingAction.gesture];
         if (!action) {
             return;
         }
@@ -488,7 +496,7 @@ const PresentationPage = () => {
             default:
                 break;
         }
-    }, [gesture, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, toggleFullScreen]);
+    }, [pendingAction, fileType, pdfPageNum, pptSlideNum, totalPdfPages, pptSlides.length, toggleFullScreen]);
 
 
     useEffect(() => {
@@ -650,6 +658,15 @@ const PresentationPage = () => {
                         </button>
 
                         <p>{subscribed && `${t('presentationPage.recognizedGesture')} ${gesture}`}</p>
+                        {debugMode && gestureStream.debugInfo && (
+                            <p style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                                {`raw: ${gestureStream.debugInfo.raw} · conf: ${gestureStream.debugInfo.confidence} · `}
+                                {`kéz: ${gestureStream.debugInfo.hands} · ${gestureStream.debugInfo.inferenceMs} ms`}
+                                {gestureStream.latency
+                                    ? ` · RTT ${gestureStream.latency.roundtripMs} ms`
+                                    : ""}
+                            </p>
+                        )}
                         {cameraError && <p role="alert">{cameraError}</p>}
                         {subscribed && gestureStream.status === STATUS.RECONNECTING && (
                             <p role="status">{t('connection.reconnecting')}</p>

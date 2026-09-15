@@ -53,7 +53,10 @@ class Settings:
     zoom_in_min_finger_angle: float = _env_float("ZOOM_IN_MIN_FINGER_ANGLE", 6.0)
 
     # --- Gesture state machine ---
+    # A gesture wins by majority inside this window, so a single flickering
+    # frame does not reset the evidence.
     gesture_threshold: int = _env_int("GESTURE_THRESHOLD", 3)
+    gesture_window_seconds: float = _env_float("GESTURE_WINDOW_SECONDS", 0.8)
     min_confidence: float = _env_float("MIN_CONFIDENCE", 0.45)
     gesture_hold_seconds: float = _env_float("GESTURE_HOLD_SECONDS", 0.18)
     gesture_cooldown_seconds: float = _env_float("GESTURE_COOLDOWN_SECONDS", 0.9)

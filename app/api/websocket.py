@@ -58,6 +58,8 @@ async def gesture_stream(websocket: WebSocket) -> None:
     expected_gesture: str | None = None
     expected_since = 0.0
     last_state: str | None = None
+    debug_mode = False
+    last_debug_at = 0.0
 
     try:
         while True:
@@ -74,6 +76,9 @@ async def gesture_stream(websocket: WebSocket) -> None:
                 kind = payload.get("type")
                 if kind == "hello":
                     source_page = str(payload.get("page") or "unknown")[:32]
+                    debug_mode = bool(payload.get("debug"))
+                elif kind == "debug":
+                    debug_mode = bool(payload.get("enabled"))
                 elif kind == "practice":
                     expected = payload.get("expected")
                     expected_gesture = str(expected)[:32] if expected else None
@@ -117,11 +122,27 @@ async def gesture_stream(websocket: WebSocket) -> None:
             event = session.evaluate(result.gesture, result.confidence)
             pipeline_ms = (time.perf_counter() - received_at) * 1000
 
+            # Raw, unfiltered detection - what the classifier saw before
+            # debouncing. Essential when tuning thresholds to a new hand.
+            if debug_mode and time.monotonic() - last_debug_at > 0.2:
+                last_debug_at = time.monotonic()
+                await websocket.send_json(
+                    {
+                        "type": "debug",
+                        "raw": result.gesture,
+                        "confidence": round(result.confidence, 3),
+                        "hands": result.hands_detected,
+                        "inferenceMs": round(result.inference_ms, 1),
+                    }
+                )
+
             if event:
+                gesture_name, actionable = event
                 await websocket.send_json(
                     {
                         "type": "gesture",
-                        "gesture": event,
+                        "gesture": gesture_name,
+                        "actionable": actionable,
                         "confidence": round(result.confidence, 3),
                         "seq": sequence,
                         "pipelineMs": round(pipeline_ms, 2),
@@ -129,7 +150,7 @@ async def gesture_stream(websocket: WebSocket) -> None:
                 )
                 repository.record_gesture_event(
                     client_id=client_id,
-                    gesture=event,
+                    gesture=gesture_name,
                     confidence=result.confidence,
                     source_page=source_page,
                     inference_ms=result.inference_ms,
@@ -140,10 +161,10 @@ async def gesture_stream(websocket: WebSocket) -> None:
                     repository.record_practice_attempt(
                         client_id=client_id,
                         expected_gesture=expected_gesture,
-                        detected_gesture=event,
+                        detected_gesture=gesture_name,
                         confidence=result.confidence,
                         time_to_detect_ms=(time.monotonic() - expected_since) * 1000,
-                        succeeded=event == expected_gesture,
+                        succeeded=gesture_name == expected_gesture,
                     )
                     expected_since = time.monotonic()
             elif sequence % FRAME_SAMPLE_EVERY == 0:
