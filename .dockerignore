@@ -16,7 +16,10 @@ client_frontend/build
 client_frontend/public/mediapipe
 
 docs/
-meresek/
+# export_data.py runs inside the api container to reach the database over the
+# internal network, so meresek/ is included except its data and legacy scripts.
+meresek/legacy/
+meresek/data/
 tools/
 browser_extension/
 *.log

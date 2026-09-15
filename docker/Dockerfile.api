@@ -17,6 +17,7 @@ COPY docker/requirements-api.txt /srv/requirements.txt
 RUN pip install --no-cache-dir -r /srv/requirements.txt
 
 COPY app /srv/app
+COPY meresek/export_data.py /srv/meresek/export_data.py
 
 RUN useradd --create-home --uid 10001 appuser && chown -R appuser:appuser /srv
 USER appuser

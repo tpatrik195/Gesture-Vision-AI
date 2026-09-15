@@ -52,6 +52,12 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"
 Indítás:
 
 ```bash
+./tools/deploy.sh
+```
+
+A szkript ellenőrzi az előfeltételeket, menti az adatbázist (ha már fut), buildel, elindít, megvárja az egészséges állapotot, majd lefuttatja az ellenőrzést. Hiba esetén megáll és kiírja a naplót — így nem jelent sikert egy félig működő telepítés. Kézzel ugyanez:
+
+```bash
 docker compose -f compose.prod.yaml up --build -d
 ```
 
@@ -76,7 +82,13 @@ docker compose -f compose.prod.yaml logs web | grep -i "certificate\|error"
 ## 5. Frissítés
 
 ```bash
-./tools/backup_db.sh          # előbb mentés
+./tools/deploy.sh --pull
+```
+
+Ez sorrendben: mentés → `git pull` → build → indítás → ellenőrzés. Kézzel:
+
+```bash
+./tools/backup_db.sh
 git pull
 docker compose -f compose.prod.yaml up --build -d
 python3 tools/smoke_test.py https://gesztus.pelda.hu
@@ -111,7 +123,7 @@ gunzip -c backups/gesture_db-20260915-030000.sql.gz \
 A kutatási adatok exportja elemzéshez:
 
 ```bash
-docker compose -f compose.prod.yaml exec api python3 -m meresek.export_data --out /srv/export
+docker compose -f compose.prod.yaml exec api python3 /srv/meresek/export_data.py --out /srv/export
 docker compose -f compose.prod.yaml cp api:/srv/export ./meresek/data
 python3 meresek/analyze.py meresek/data/<időbélyeg>
 ```
@@ -142,7 +154,17 @@ Ha több felhasználót kell kiszolgálni, mint amennyit egy gép bír: az API �
 | Akadozó felismerés | Kevés a CPU. Nézd meg a `docker stats` kimenetét, csökkentsd a `MAX_FRAMES_PER_SECOND` értéket, vagy adj több magot. |
 | `database: disabled` az állapotban | Hiányzó vagy hibás `DATABASE_URL`. A rendszer szándékosan fut tovább adatbázis nélkül, de ilyenkor nem gyűjt mérési adatot. |
 
-## 9. Adatvédelmi megjegyzés az éles üzemhez
+## 9. Folyamatos ellenőrzés (CI)
+
+A `.github/workflows/ci.yml` minden `main`-re küldött változtatásnál és minden pull requestnél lefuttatja:
+
+- a frontend buildet (a figyelmeztetések hibának számítanak),
+- a backend importálását és egy detektor-ellenőrzést,
+- a **teljes production stack** felépítését és indítását, majd a `smoke_test.py`-t ellene.
+
+Ez azért fontos, mert a stack így minden változtatásnál valódi Docker környezetben is bizonyítottan elindul — nem csak azon a gépen, ahol a fejlesztés zajlik. Hiba esetén a konténernaplók a futás kimenetében megjelennek.
+
+## 10. Adatvédelmi megjegyzés az éles üzemhez
 
 A rendszer nyers képkockát sem lemezre, sem adatbázisba nem ír; a kamerakép kizárólag a memóriában, a felismerés idejére létezik. Az adatbázis metaadatot tárol: gesztus neve, időbélyeg, megbízhatóság, késleltetés, munkamenet-azonosító, valamint a hozzájárulás ténye verzióval és időponttal.
 

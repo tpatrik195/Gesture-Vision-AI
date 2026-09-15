@@ -7,7 +7,7 @@ A mérési adatok az éles használatból keletkeznek, nem kézzel bemásolt sz�
 1. **Export** az adatbázisból CSV-be (a futó stackben):
 
    ```bash
-   docker compose exec api python3 -m meresek.export_data --out /srv/export
+   docker compose -f compose.prod.yaml exec api python3 /srv/meresek/export_data.py --out /srv/export
    # vagy lokálisan, beállított DATABASE_URL mellett:
    DATABASE_URL=postgresql+psycopg2://... python3 meresek/export_data.py
    ```

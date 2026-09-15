@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: client_frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client_frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: client_frontend
+        env:
+          CI: true
+        run: npm run build
+
+  backend:
+    name: Backend checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r docker/requirements-api.txt
+
+      - name: Import check
+        run: python -c "import app.main; print('app.main imports cleanly')"
+
+      - name: Detector smoke check
+        run: |
+          python - <<'PY'
+          import numpy as np
+          from app.models.hand_detector import HandGestureDetector, SUPPORTED_GESTURES
+          detector = HandGestureDetector()
+          result = detector.detect(np.zeros((360, 640, 3), dtype=np.uint8))
+          assert result.gesture == "no hand detected", result.gesture
+          assert len(SUPPORTED_GESTURES) >= 5
+          detector.close()
+          print("detector ok:", len(SUPPORTED_GESTURES), "gestures")
+          PY
+
+  stack:
+    name: Production stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create environment file
+        run: |
+          cp .env.example .env
+          PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
+          sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$PASSWORD|" .env
+          sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql+psycopg2://gesture:$PASSWORD@db:5432/gesture_db|" .env
+          sed -i "s|^SITE_ADDRESS=.*|SITE_ADDRESS=:80|" .env
+
+      - name: Build and start
+        run: docker compose -f compose.prod.yaml up --build -d
+
+      - name: Wait for health
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost/api/health > /dev/null 2>&1; then
+              echo "healthy after ${attempt}0s"
+              curl -s http://localhost/api/health
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "service did not become healthy"
+          exit 1
+
+      - name: Smoke test
+        run: |
+          pip install websockets numpy opencv-python-headless
+          python3 tools/smoke_test.py http://localhost
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker compose -f compose.prod.yaml logs --tail 200
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f compose.prod.yaml down -v
