@@ -45,4 +45,6 @@ app.add_middleware(
 )
 
 app.include_router(routes.router)
-app.include_router(websocket.router)
+# The gesture socket lives under /api too, so a single proxy rule covers the
+# whole backend and it can never collide with a dev server's own /ws socket.
+app.include_router(websocket.router, prefix="/api")

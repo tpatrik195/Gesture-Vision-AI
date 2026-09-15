@@ -140,9 +140,13 @@ curl http://localhost:3000/api/health
 | `POST /api/session` | Munkamenet nyitása; `clientId`, `token` és a támogatott gesztusok listája |
 | `POST /api/consent` | Kamerahasználati hozzájárulás rögzítése (`Authorization: Bearer <token>`) |
 | `GET /api/health` | Állapot, aktív munkamenetek, gesztuskészlet |
-| `WS /ws?token=…` | Gesztusfolyam |
+| `WS /api/ws?token=…` | Gesztusfolyam |
 
 ### WebSocket protokoll
+
+A gesztus-WebSocket az `/api/ws` útvonalon fut. Ez szándékos: a fejlesztői szerver saját
+hot-reload socketje a `/ws`-t foglalja, és elkapná a kapcsolatot — az `/api` prefix alatt
+viszont a teljes backend egyetlen proxyszabállyal lefedhető, ütközés nélkül.
 
 **Kliens → szerver (bináris):** 4 bájt big-endian sorszám, utána a JPEG képkocka. A sorszám teszi lehetővé, hogy a kliens saját óráján mérje a körbeérési időt — óraszinkron nélkül.
 

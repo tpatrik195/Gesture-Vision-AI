@@ -7,7 +7,7 @@ const API_BASE = `${window.location.origin}/api`;
 const TOKEN_KEY = "gestureSessionToken";
 const CLIENT_ID_KEY = "gestureClientId";
 
-export const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
+export const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/api/ws`;
 
 let sessionPromise = null;
 

@@ -47,8 +47,6 @@ services:
     restart: unless-stopped
     environment:
       CHOKIDAR_USEPOLLING: "true"
-      WDS_SOCKET_PATH: /ws-hmr
-      WDS_SOCKET_PORT: "0"
       DEV_API_TARGET: http://api:8000
     volumes:
       - ./client_frontend/src:/app/client_frontend/src:ro

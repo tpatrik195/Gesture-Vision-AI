@@ -90,7 +90,19 @@ Megtartva a fejlesztő kérésére: `app/models/segmentation.py`, az `upsert_cli
 
 A felület a backend gesztuslistájából épül fel, így az új gesztusok külön frontend-módosítás nélkül jelentek meg a gyakorló és a beállítások oldalon.
 
-## 10. Ami még hátravan
+## 10. A gesztusfolyam útvonala: `/api/ws`
+
+A fejlesztői szerver (webpack-dev-server) saját hot-reload WebSocketje alapértelmezés szerint a
+`/ws` útvonalat foglalja, és elkapta a gesztus-kapcsolatot, mielőtt a proxy továbbíthatta volna a
+backendnek. A böngésző így a fejlesztői szerverrel beszélgetett: a képkockákat elküldte, de
+gesztusesemény soha nem érkezett vissza.
+
+A `WDS_SOCKET_PATH` beállítás erre nem megoldás: a react-scripts csak a kliensoldali URL-t
+állítja vele, a szerveroldali socket marad a `/ws`-en. A gesztusfolyam ezért az `/api/ws`
+útvonalra került. Ez egyben tisztább is: a teljes backend — REST és WebSocket — egyetlen prefix
+alatt van, így fejlesztői proxyban, Nginxben és Caddyben is egyetlen szabály fedi le.
+
+## 11. Ami még hátravan
 
 1. **Küszöbkalibráció valós kézzel** a `tools/gesture_probe.py` eszközzel — a jelenlegi értékek irodalmi/megfigyelési alapon vannak beállítva, nem a végleges felhasználó kezére.
 2. A `browser_extension` bekötése a valós API-hoz (jelenleg egy helyi stub bridge-et pollingol).

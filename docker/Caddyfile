@@ -14,7 +14,7 @@
 
 	# Gesture stream. Long-lived, so no read timeout.
 	@websocket {
-		path /ws
+		path /api/ws
 		header Connection *Upgrade*
 		header Upgrade websocket
 	}

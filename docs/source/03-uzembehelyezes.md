@@ -8,7 +8,7 @@ Három konténer:
 
 | Konténer | Szerep | Publikált port |
 | --- | --- | --- |
-| `web` | Caddy: a beépített frontendet szolgálja ki, proxyzza az API-t és a WebSocketet, kezeli a TLS-t | 80, 443 |
+| `web` | Caddy: a beépített frontendet szolgálja ki, proxyzza az API-t és a WebSocketet (`/api/*`), kezeli a TLS-t | 80, 443 |
 | `api` | FastAPI + MediaPipe: gesztusfelismerés | — |
 | `db` | PostgreSQL 16: hozzájárulás és mérési adatok | — |
 
@@ -149,7 +149,7 @@ Ha több felhasználót kell kiszolgálni, mint amennyit egy gép bír: az API �
 | --- | --- |
 | A kamera nem indul el | Nem HTTPS-en érted el az oldalt. A böngésző csak biztonságos környezetben ad kamerát. |
 | A tanúsítvány nem jön létre | A DNS még nem mutat a szerverre, vagy a 80-as port zárva. A Caddy naplója megmondja. |
-| `4401` a WebSocketen | Lejárt vagy érvénytelen munkamenet-token. A kliens automatikusan újat kér; ha ismétlődik, nézd meg a `SESSION_TOKEN_TTL` értékét. |
+| `4401` a WebSocketen (`/api/ws`) | Lejárt vagy érvénytelen munkamenet-token. A kliens automatikusan újat kér; ha ismétlődik, nézd meg a `SESSION_TOKEN_TTL` értékét. |
 | `4503` a WebSocketen | Elérted a `MAX_CONCURRENT_SESSIONS` korlátot. |
 | Akadozó felismerés | Kevés a CPU. Nézd meg a `docker stats` kimenetét, csökkentsd a `MAX_FRAMES_PER_SECOND` értéket, vagy adj több magot. |
 | `database: disabled` az állapotban | Hiányzó vagy hibás `DATABASE_URL`. A rendszer szándékosan fut tovább adatbázis nélkül, de ilyenkor nem gyűjt mérési adatot. |
